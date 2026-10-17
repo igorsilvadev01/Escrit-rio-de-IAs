@@ -1,0 +1,1 @@
+{"name":"firma-ai-office","version":"0.2.0","private":true,"description":"Escritório 2D local com funcionários de IA simulados","scripts":{"start":"node server.cjs","check":"node --check app.js && node --check ui.js && node --check engine.js && node --check server.cjs","test":"node --test tests/engine.test.cjs"}}

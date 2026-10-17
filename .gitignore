@@ -1,0 +1,19 @@
+# Dependencies and generated output
+node_modules/
+artifacts/
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# Local credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local office backups
+firma-backup-*.json
