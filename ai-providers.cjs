@@ -2,15 +2,14 @@
 // Fixed official endpoints; no caller-controlled URLs or browser-held credentials.
 const catalog={
   codex:{name:'ChatGPT / Codex',auth:'oauth',url:'https://learn.chatgpt.com/docs/app-server'},
-  claude:{name:'Claude',auth:'api-key',url:'https://platform.claude.com/settings/keys'},
   gemini:{name:'Gemini',auth:'api-key',url:'https://aistudio.google.com/apikey'}
 };
 const defaults={
   leadership:{provider:'codex',model:'',reason:'Liderança e orientação técnica com Codex.'},
-  planning:{provider:'claude',model:'claude-opus-5-5',reason:'Raciocínio, requisitos e planejamento de projetos complexos.'},
+  planning:{provider:'gemini',model:'gemini-3.8-flash',reason:'Planejamento, requisitos e escopo dentro das cotas disponíveis da conta Gemini.'},
   development:{provider:'codex',model:'',reason:'Especialista em código; nesta versão entrega propostas para revisão.'},
-  testing:{provider:'gemini',model:'gemini-4-argon',reason:'Revisão independente, raciocínio e análise de contexto longo.'},
-  publishing:{provider:'claude',model:'claude-sonnet-5-5',reason:'Escrita, clareza e equilíbrio entre qualidade e custo.'}
+  testing:{provider:'gemini',model:'gemini-3.8-flash',reason:'Revisão técnica e casos de teste propostos, sem execução automática.'},
+  publishing:{provider:'gemini',model:'gemini-3.8-flash',reason:'Rascunhos de conteúdo e checklist para publicação após revisão humana.'}
 };
 const modelValid=value=>typeof value==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(value);
 function providerError(status){
@@ -27,17 +26,13 @@ async function jsonRequest(fetcher,url,{headers={},signal,...options}={}){
   try{return JSON.parse(data);}catch{throw Error('O provedor retornou uma resposta inválida.');}
 }
 async function listModels(provider,key,fetcher=fetch){
-  if(provider==='claude'){const r=await jsonRequest(fetcher,'https://api.anthropic.com/v1/models?limit=100',{signal:AbortSignal.timeout(15000),headers:{'x-api-key':key,'anthropic-version':'2023-06-01'}});return (r.data||[]).map(m=>({id:m.id,name:m.display_name||m.id})).filter(m=>modelValid(m.id));}
   if(provider==='gemini'){const r=await jsonRequest(fetcher,'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100',{signal:AbortSignal.timeout(15000),headers:{'x-goog-api-key':key}});return (r.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>({id:String(m.name).replace(/^models\//,''),name:m.displayName||m.name})).filter(m=>modelValid(m.id));}
   throw Error('Provedor inválido.');
 }
 async function generate(provider,{key,model,system,prompt,maxTokens,signal},fetcher=fetch){
   if(!modelValid(model))throw Error('Escolha um modelo válido.');
   let r,text,usage,finish;
-  if(provider==='claude'){
-    r=await jsonRequest(fetcher,'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTokens,system,messages:[{role:'user',content:prompt}]}),signal});
-    text=(r.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');usage=r.usage;finish=r.stop_reason;if(finish!=='end_turn')throw Error('A resposta não terminou normalmente. Aumente o limite ou reduza o briefing e tente novamente.');
-  }else if(provider==='gemini'){
+  if(provider==='gemini'){
     r=await jsonRequest(fetcher,'https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}}),signal});
     const candidate=r.candidates?.[0];text=(candidate?.content?.parts||[]).filter(p=>typeof p.text==='string'&&!p.thought).map(p=>p.text).join('\n');usage=r.usageMetadata;finish=candidate?.finishReason;if(finish!=='STOP')throw Error('A resposta foi bloqueada, interrompida ou atingiu o limite. Revise o briefing ou aumente o limite.');
   }else throw Error('Provedor inválido.');

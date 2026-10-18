@@ -1,6 +1,7 @@
 /* Firma's deterministic simulator. No network calls or model-generated output. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.FirmaEngine=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
+  const officeLayout={id:'village-v4',scale:1,spawn:{x:270,y:216},bounds:{left:24,right:776,top:24,bottom:456}};
   const colors=['#57d8ff','#b9b0d8','#d4ae83','#8dbfc0','#cf9ba4','#a8b9d5'];
   const stages={queued:'Na fila',working:'Em produção',blocked:'Bloqueada',review:'Sua revisão',done:'Aprovada'};
   const departments={
@@ -38,8 +39,10 @@
     const state={version:2,assembly:{active:raw.assembly?.active===true},agents,tasks,seconds:Math.max(0,Number(raw.seconds)||0),speed:[1,2,4].includes(raw.speed)?raw.speed:1,events:Array.isArray(raw.events)?raw.events.slice(0,80).map(e=>({name:string(e.name,'Equipe',60),text:string(e.text,'',500),time:Math.max(0,Number(e.time)||0)})):[],memory:string(raw.memory,'Somos uma pequena empresa construindo produtos úteis. Priorizamos clareza, acessibilidade e entregas verificáveis.',12000),company:string(raw.company,'Firma HQ',40),onboarded:!!raw.onboarded};
     const p=raw.player&&typeof raw.player==='object'?raw.player:{};
     const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
-    const currentLayout=p.layout==='rooms-v1';
-    state.player={name:string(p.name,'Você',20).trim()||'Você',color:color(p.color,'#c3ed8b'),skin:color(p.skin,'#c89570'),hair:color(p.hair,'#342d2b'),x:currentLayout&&Number.isFinite(p.x)?clamp(p.x,43,1157):495,y:currentLayout&&Number.isFinite(p.y)?clamp(p.y,76,910):330,visited:currentLayout&&Array.isArray(p.visited)?[...new Set(p.visited.filter(v=>['planning','development','testing','publishing','leadership','rest'].includes(v)))]:[],immersive:true,layout:'rooms-v1'};
+    const currentLayout=p.layout===officeLayout.id,knownLayout=currentLayout||['compact-v3','compact-v2','rooms-v1'].includes(p.layout);
+    // This is a new five-room plan. Older saves re-enter at the shared doors, preserving the office.
+    const coordinateScale=1,previousLayout=false,b=officeLayout.bounds;
+    state.player={name:string(p.name,'Você',20).trim()||'Você',color:color(p.color,'#c3ed8b'),skin:color(p.skin,'#c89570'),hair:color(p.hair,'#342d2b'),x:(currentLayout||previousLayout)&&Number.isFinite(p.x)?clamp(p.x*coordinateScale,b.left,b.right):officeLayout.spawn.x,y:(currentLayout||previousLayout)&&Number.isFinite(p.y)?clamp(p.y*coordinateScale,b.top,b.bottom):officeLayout.spawn.y,visited:knownLayout&&Array.isArray(p.visited)?[...new Set(p.visited.filter(v=>['planning','development','testing','publishing','leadership','rest','admin'].includes(v)))]:[],immersive:true,layout:officeLayout.id};
     for(const t of tasks){const seen=new Set([t.id]);let dep=t.dependency;while(dep){if(seen.has(dep))throw Error('O backup contém dependências circulares.');seen.add(dep);dep=tasks.find(d=>d.id===dep)?.dependency;}}
     reconcile(state);return state;
   }
@@ -72,5 +75,5 @@
   function summonTeam(s){if(s.assembly?.active)return;s.assembly={active:true};event(s,'Codex','convocou toda a equipe para a sala de reunião. As tarefas aguardam o encerramento.');reconcile(s);}
   function dismissTeam(s){if(!s.assembly?.active)return;s.assembly={active:false};event(s,'Codex','encerrou a reunião geral. A equipe retorna às suas salas.');reconcile(s);}
   function contract(s,t){return{version:1,mode:t.execution?.kind==='real'?'real':'simulation',taskId:t.id,objective:t.title,instructions:t.description,agent:s.agents.find(a=>a.id===t.agent),expectedOutput:t.output,acceptanceCriteria:t.criteria,contextSnapshot:t.context,dependency:t.dependency?s.tasks.find(d=>d.id===t.dependency)?.result||'':null,feedback:t.revisions,requiresHumanReview:true};}
-  return{colors,stages,templates,departments,departmentOf,taskDepartment,uid,create,migrate,event,reconcile,agentStatus,recommend,addTask,tick,approve,revise,pauseAgent,meeting,summonTeam,dismissTeam,contract};
+  return{officeLayout,colors,stages,templates,departments,departmentOf,taskDepartment,uid,create,migrate,event,reconcile,agentStatus,recommend,addTask,tick,approve,revise,pauseAgent,meeting,summonTeam,dismissTeam,contract};
 });

@@ -1,8 +1,14 @@
-# Firma — escritório de IAs em 2D · v0.9
+# Firma — escritório de IAs em 2D · v0.11
 
-## Bancada: código, chat e terminal
+## Planta compacta
 
-Entre como administrador e abra **⌘ Bancada** no topo. Acompanhe os arquivos salvos no VS Code, converse separadamente com a IA de cada função, encaminhe missões e execute verificações locais com saída ao vivo. O terminal tem uma lista fixa de comandos permitidos; não é um shell livre e as IAs não editam arquivos automaticamente.
+O mapa passou de 1200 × 1260 para **1200 × 900**, cerca de 29% menor. Os quatro setores ficam junto ao corredor central; descanso e administrador dividem a fileira inferior, sem uma ala distante. A sala do Codex mantém a reunião com 26 lugares e o descanso mantém 25 lugares. Mesas, cadeiras e atalhos continuam funcionais. Ao carregar a planta anterior, o personagem retorna à entrada segura, preservando aparência, visitas, equipe e missões.
+
+## Computadores dentro do jogo: código, chat e terminal
+
+Entre como administrador e **clique no Codex ou nos computadores para abrir imediatamente, sem caminhar**. O menu **Mapa e controles** também abre cada estação diretamente. Caminhar com WASD/setas e interagir com **E** continua opcional. A **Sala do administrador**, ao lado do descanso, tem uma mesa com o mesmo chat Codex, código, missões e terminal de desenvolvimento; não duplica contas nem histórico. Veja [Sala do administrador v0.11](docs/ADMIN-V0.11.md).
+
+Cada setor tem uma animação própria durante o trabalho. A porcentagem é a razão de entregas prontas pelo total de missões do setor; geração real usa indicador de atividade sem inventar percentual de tokens. A simulação é identificada separadamente. Guia: [Computadores e setores v0.10](docs/COMPUTADORES-V0.10.md).
 
 Chats usam streaming real, histórico privado e o mesmo limite diário das missões. Nenhum arquivo é enviado sem você marcar o anexo. A Bancada só está disponível no servidor local. Guia e limites: [Bancada v0.9](docs/BANCADA-V0.9.md).
 
@@ -10,9 +16,9 @@ Um escritório jogável com quatro salas de produção, uma sala para o líder C
 
 ## IAs reais
 
-Na sala do Codex, abra **Conectar IAs reais**. Codex usa login oficial do ChatGPT em uma sessão própria da Firma. Claude e Gemini usam chaves das respectivas plataformas de API — não as senhas do chat.
+Na sala do Codex, abra **Conectar IAs reais**. Codex usa login oficial do ChatGPT em uma sessão própria da Firma. Gemini usa a chave da plataforma de API — não a senha do chat.
 
-Configuração atual recomendada para evitar pré-pagamento da API Claude: Codex na liderança/desenvolvimento e Gemini nas funções de planejamento, revisão técnica e conteúdo, dentro das cotas gratuitas da conta. Claude é opcional e pode permanecer desconectado. Modelos são ajustáveis conforme sua conta, mantendo Codex como líder.
+Integrações disponíveis: apenas Codex e Gemini. Codex fica na liderança/desenvolvimento; Gemini no planejamento, revisão técnica e conteúdo. Claude foi removido da interface e dos adaptadores de execução. Modelos são ajustáveis conforme sua conta.
 
 Use **Ordem ao líder Codex**, **Dar ordem à IA** no colaborador ou **Criar fluxo com IAs reais**. Cada envio exige confirmação do compartilhamento de dados e possível consumo. Respostas vão para revisão humana; uma dependência só avança depois da sua aprovação.
 
@@ -72,7 +78,7 @@ Codex é o personagem que representa o líder no jogo. A coordenação é simula
 
 - **WASD ou setas:** andar.
 - **Clique/toque no chão:** caminhar contornando móveis e paredes.
-- **Clique em um terminal ou colega:** ir até ele e interagir ao chegar.
+- **Clique em um terminal ou colega:** abrir suas ferramentas diretamente, sem caminhar.
 - **E ou botão de interação:** usar o objeto ou conversar com o colega próximo.
 - **1–5:** caminhar até a sala correspondente.
 - **Mapa e controles / Ctrl+K:** escolher um destino; zoom também fica nesse menu recolhido.
@@ -80,7 +86,7 @@ Codex é o personagem que representa o líder no jogo. A coordenação é simula
 - **?:** guia.
 - **Celular:** setas de toque, câmera acompanhando o personagem e botão de interação.
 
-Aparência, nome, posição e salas visitadas são salvos. Na primeira migração para o novo mapa, somente a posição e a descoberta dos locais são reiniciadas; sua equipe, missões e identidade são mantidas.
+Aparência, nome, posição e salas visitadas são salvos. Na migração da planta antiga para a compacta, somente a posição volta à entrada segura; salas visitadas, equipe, missões e identidade são mantidas.
 
 ## Da ideia à divulgação
 

@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const ROLES=['leadership','planning','development','testing','publishing'];
-const UNIT_TESTS=['engine.test.cjs','world.test.cjs','server.test.cjs','ai.test.cjs','codex-bridge.test.cjs','workstation.test.cjs'];
+const UNIT_TESTS=['engine.test.cjs','world.test.cjs','server.test.cjs','ai.test.cjs','codex-bridge.test.cjs','workstation.test.cjs','activity.test.cjs'];
 const CODE=/\.(?:js|cjs|mjs|html|css|json|md|bat)$/i;
 const PRIVATE=/(?:^|\/)(?:\.|node_modules|artifacts|dist|coverage)|(?:secret|credential|token|password|lockfile)/i;
 function stopChild(child){
@@ -33,7 +33,7 @@ class Workstation{
     }};walk(this.root);return result.sort((a,b)=>a.path.localeCompare(b.path));
   }
   read(name){const {file,stat}=this.target(name),text=this.clean(fs.readFileSync(file,'utf8'));return {path:name,text,modified:stat.mtimeMs,hash:crypto.createHash('sha256').update(text).digest('hex')};}
-  status(){return {chats:this.chats,terminal:{...this.terminal,output:this.clean(this.terminal.output)},chatRunning:this.ai.activeChat?{role:this.ai.activeChat.role,provider:this.ai.activeChat.provider}:null,commands:[{id:'syntax',label:'Verificar sintaxe do arquivo JS aberto'},{id:'tests',label:'Rodar testes automatizados do projeto'},{id:'status',label:'git status — alterações locais'},{id:'diff',label:'git diff — resumo das alterações'}]};}
+  status(){return {chats:this.chats,terminal:{...this.terminal,output:this.clean(this.terminal.output)},missionLive:this.ai.active?{id:this.ai.active.id,role:this.ai.active.role,model:this.ai.active.model,provider:this.ai.active.provider,text:this.clean(this.ai.active.preview||'')}:null,chatRunning:this.ai.activeChat?{role:this.ai.activeChat.role,provider:this.ai.activeChat.provider}:null,commands:[{id:'syntax',label:'Verificar sintaxe do arquivo JS aberto'},{id:'tests',label:'Rodar testes automatizados do projeto'},{id:'status',label:'git status — alterações locais'},{id:'diff',label:'git diff — resumo das alterações'}]};}
   send(p){
     if(p.confirm!==true)throw Error('Confirme o envio da conversa ao provedor.');
     if(!ROLES.includes(p.role)||typeof p.text!=='string'||!p.text.trim()||p.text.length>6000)throw Error('Escolha uma função e escreva até 6000 caracteres.');

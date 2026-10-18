@@ -27,7 +27,7 @@ body.playing .topbar.game-topbar{background:#172243;border-color:#455f9c}
 @media(max-width:540px){.assembly-card .secondary-button{margin-left:0;display:block}}
 
 
-.ai-provider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.ai-provider-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
 .ai-provider-card,.ai-task-box{border:1px solid #6379b5;background:#162344;padding:16px;border-radius:10px;min-width:0}
 .ai-provider-card h3{font-size:16px;margin:0 0 12px;color:#fff}
 .ai-provider-card p,.ai-provider-card small{font-size:10px;line-height:1.8;color:#c1cfee}

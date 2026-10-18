@@ -1,5 +1,7 @@
 # IAs reais na Firma · v0.8
 
+> Documento histórico da v0.8. Na versão atual, Claude foi removido da interface e dos adaptadores. Apenas Codex e Gemini estão disponíveis. As referências abaixo registram decisões anteriores e não instruções para reconectar Claude.
+
 Pesquisa e implementação: 17/10/2026.
 
 ## Seleção por função

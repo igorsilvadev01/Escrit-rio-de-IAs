@@ -10,7 +10,7 @@ async function fixture(){
   const setup=await post('/api/setup',{token:app.setupToken,username:'qa-admin',password:'Uma senha longa para QA 2026!'});const session=await setup.json();auth={Cookie:setup.headers.get('set-cookie').split(';')[0],'X-Firma-CSRF':session.csrf};
   const action=(action,payload={})=>post('/api/ai/action',{action,payload});
   const get=async()=>await (await request('/api/state',{headers:auth})).json();
-  async function connect(){for(const provider of ['claude','gemini'])assert.equal((await action('connect',{provider,key:'QA_SECRET_API_KEY_1234567890'})).status,200);await action('codex.login');await action('codex.check');}
+  async function connect(){assert.equal((await action('connect',{provider:'gemini',key:'QA_SECRET_API_KEY_1234567890'})).status,200);await action('codex.login');await action('codex.check');}
   return {dir,app,fakes,request,post,action,get,connect,get auth(){return auth;},async close(){app.ai.close();await new Promise(resolve=>app.server.close(resolve));assert.equal(path.dirname(dir),os.tmpdir());assert.ok(path.basename(dir).startsWith('firma-ai-test-'));fs.rmSync(dir,{recursive:true,force:true});}};
 }
 test('AI endpoints require admin, same-origin JSON and CSRF; secrets are never in snapshots, files or backups',async()=>{
@@ -37,7 +37,7 @@ test('four real stages respect dependencies, use assigned providers and carry ap
       for(const next of tasks.slice(index+1))assert.equal(next.execution.status,'pending');
       assert.equal((await f.post('/api/action',{action:'task.approve',payload:{id:task.id}})).status,200);
     }
-    assert.deepEqual(f.fakes.calls.map(c=>c.provider),['claude','codex','gemini','claude']);
+    assert.deepEqual(f.fakes.calls.map(c=>c.provider),['gemini','codex','gemini','gemini']);
     const dev=f.fakes.calls[1];assert.match(dev.prompt,/Entrega gerada por IA/);assert.match(dev.system,/NÃO tem um executor/);
     const testing=JSON.stringify(f.fakes.calls[2].payload);assert.match(testing,/NÃO executa testes/);
     const publicState=await (await f.request('/api/state')).json();assert.ok(publicState.state.tasks.every(t=>!t.result&&!t.execution?.error));assert.ok(!JSON.stringify(publicState).includes('Criar uma página acessível'));
@@ -72,8 +72,23 @@ test('daily call cap, meeting, pause, cancellation and restore require deliberat
   }finally{await f.close();}
 });
 test('provider adapters reject invalid model paths and do not follow redirects or expose upstream error bodies',async()=>{
-  await assert.rejects(()=>P.generate('claude',{model:'../../.env'},()=>{throw Error('must not fetch');}),/modelo válido/);
-  await assert.rejects(()=>P.listModels('claude','QA_SECRET',async(url,options)=>{assert.equal(options.redirect,'error');return new Response('QA_SECRET',{status:401});}),/Credencial recusada/);
+  await assert.rejects(()=>P.generate('gemini',{model:'../../.env'},()=>{throw Error('must not fetch');}),/modelo válido/);
+  await assert.rejects(()=>P.listModels('gemini','QA_SECRET',async(url,options)=>{assert.equal(options.redirect,'error');return new Response('QA_SECRET',{status:401});}),/Credencial recusada/);
+});
+
+test('removed Claude has no adapter or credential handling; legacy roles migrate without provider calls',async()=>{
+  const f=await fixture();try{
+    assert.deepEqual(Object.keys(P.catalog),['codex','gemini']);
+    assert.equal((await f.action('connect',{provider:'claude',key:'QA_REMOVED_KEY_1234567890'})).status,400);
+    const settings={...f.app.ai.settings,roles:{...f.app.ai.settings.roles,planning:{provider:'claude',model:'legacy-model'}}};
+    assert.equal((await f.action('settings',settings)).status,400);assert.equal(f.fakes.calls.length,0);
+    await assert.rejects(()=>P.listModels('claude','QA_REMOVED',()=>{throw Error('must not fetch');}),/Provedor inválido/);
+    await assert.rejects(()=>P.generate('claude',{model:'legacy-model'},()=>{throw Error('must not fetch');}),/Provedor inválido/);
+    const migrationDir=path.join(f.dir,'migration');fs.mkdirSync(migrationDir);fs.writeFileSync(path.join(migrationDir,'ai-settings.json'),JSON.stringify(settings));
+    const {AIRuntime}=require('../ai-runtime.cjs'),state=E.create();
+    const migrated=new AIRuntime({dataDir:migrationDir,getState:()=>state,isPaused:()=>true,changed:()=>{},codex:f.fakes.codex,fetcher:f.fakes.fetcher,env:{ANTHROPIC_API_KEY:'QA_REMOVED_KEY'}});
+    try{assert.equal(migrated.settings.roles.planning.provider,'gemini');assert.equal(migrated.settings.roles.planning.model,'gemini-3.8-flash');assert.equal(migrated.key('claude'),'');assert.equal(migrated.usage().used,0);assert.ok(!fs.readFileSync(path.join(migrationDir,'ai-settings.json'),'utf8').includes('claude'));assert.equal(f.fakes.calls.length,0);}finally{migrated.close();}
+  }finally{await f.close();}
 });
 test('direct collaborator orders use their own department and revisions require a new confirmation',async()=>{
   const f=await fixture();try{

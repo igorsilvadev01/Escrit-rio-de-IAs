@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {createFirmaServer}=require('../server.cjs'),{fakeProviders}=require('./ai-fixtures.cjs'),P=require('../ai-providers.cjs');
+const E=require('../engine.js');
 const wait=async fn=>{for(let n=0;n<200;n++){if(await fn())return;await new Promise(r=>setTimeout(r,15));}throw Error('QA timed out');};
 async function fixture(options={}){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'firma-studio-test-')),root=path.join(dir,'project'),dataDir=path.join(dir,'private');fs.mkdirSync(root);fs.mkdirSync(path.join(root,'docs'));fs.mkdirSync(path.join(root,'.firma-private'));
@@ -96,4 +97,13 @@ test('incremental output redacts credentials split between chunks and restarted 
     fs.writeFileSync(path.join(f.dir,'private','chats.json'),JSON.stringify({planning:[{id:'qa',role:'assistant',text:'Trecho parcial',status:'running'}]}));
     const {Workstation}=require('../workstation.cjs'),restored=new Workstation({root:f.root,dataDir:path.join(f.dir,'private'),ai:f.app.ai});assert.equal(restored.status().chats.planning[0].status,'interrupted');assert.match(restored.status().chats.planning[0].error,/reiniciado/);assert.equal(restored.status().chatRunning,null);restored.close();
   }finally{await f.close();}
+});
+test('mission code is visible incrementally only through private studio; delivery still requires completion',async()=>{
+  const f=await fixture();let finish;try{
+    await f.connect();f.fakes.codex.run=request=>new Promise(resolve=>{request.onDelta('```javascript\nconst QA_LIVE_CODE = 42;');finish=()=>resolve({text:'```javascript\nconst QA_LIVE_CODE = 42;\n```',model:'qa-codex',usage:{tokens:9}});});
+    const state=f.app.ai.getState(),task=E.addTask(state,{template:'development',agent:E.recommend(state,'development').id,title:'QA live code',description:'Produce a tiny example.'});await f.ai('queue',{id:task.id,confirm:true});E.tick(state,20);const running=f.app.ai.pump();await wait(()=>!!finish);
+    const live=(await f.status()).missionLive;assert.equal(live.id,task.id);assert.equal(live.role,'development');assert.match(live.text,/QA_LIVE_CODE/);assert.equal(task.result,'');assert.notEqual(task.status,'review');
+    assert.ok(!(await (await f.request('/api/state',{})).text()).includes('QA_LIVE_CODE'));assert.equal((await f.request('/api/studio/status',{})).status,401);
+    finish();await running;await f.app.ai.pump();assert.equal(task.status,'review');assert.match(task.result,/QA_LIVE_CODE/);assert.equal((await f.status()).missionLive,null);
+  }finally{finish?.();await f.close();}
 });

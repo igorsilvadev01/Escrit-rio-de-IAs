@@ -1,6 +1,6 @@
 # Bancada da Firma · v0.9
 
-Depois de entrar como administrador, clique em **⌘ Bancada** no topo do escritório. A Bancada roda somente no servidor local; não deve ser publicada como uma IDE remota. Visitantes não recebem arquivos, chats ou saída do terminal.
+Na v0.10, o acesso foi integrado aos computadores das salas: clique em um computador ou aproxime-se e aperte **E**. O botão externo foi removido. Veja [Computadores e setores v0.10](COMPUTADORES-V0.10.md). A estação continua apenas local; visitantes não recebem arquivos, chats ou saída do terminal.
 
 ## Código ao vivo
 
@@ -10,7 +10,7 @@ Arquivos privados, pastas ocultas, credenciais, dependências, artefatos, caminh
 
 ## Chat por função
 
-Há conversas separadas para liderança, planejamento, desenvolvimento, testes e conteúdo. Cada uma usa o provedor/modelo configurado na Central de IAs. A configuração atual do proprietário usa Codex na liderança/desenvolvimento e Gemini nas outras funções; o adaptador Claude continua opcional, desconectado.
+Há conversas separadas para liderança, planejamento, desenvolvimento, testes e conteúdo. Cada uma usa o provedor/modelo configurado na Central de IAs. São suportados apenas Codex e Gemini: Codex na liderança/desenvolvimento e Gemini nas outras funções. A integração Claude foi removida; entregas antigas permanecem somente como histórico.
 
 O Codex entrega trechos de `item/agentMessage/delta`. O Gemini usa `streamGenerateContent` com SSE. Não há digitação simulada: se o provedor demora para enviar o primeiro trecho, o painel informa que está aguardando. Somente uma conclusão válida conta como resposta concluída. Pensamento interno não é exibido.
 
