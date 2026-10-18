@@ -17,3 +17,6 @@ Thumbs.db
 
 # Local office backups
 firma-backup-*.json
+
+# Admin credentials, private setup link and server office data
+.firma-private/

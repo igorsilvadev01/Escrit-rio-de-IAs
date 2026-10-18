@@ -1,4 +1,4 @@
-# Referências aplicadas na Firma v0.2
+# Referências aplicadas na Firma
 
 Pesquisa feita em 17 de outubro de 2026. As decisões abaixo são adaptações para este protótipo, sem copiar interfaces ou usar marcas como se fossem integrações.
 
@@ -20,3 +20,18 @@ Pesquisa feita em 17 de outubro de 2026. As decisões abaixo são adaptações p
 - A navegação prioriza missão → produção → revisão → aprovação, com atalhos, busca, estados vazios e backup restaurável.
 
 Nenhuma referência é uma promessa de capacidades disponíveis no protótipo. As conexões com provedores de IA ainda não existem.
+
+## Evolução jogável — v0.3
+
+Os arquivos `engine.js`, `ui.js`, `app.js` e os testes da v0.2 foram a referência principal para a evolução: o motor continua sendo a fonte de regras; os diálogos de missão, revisão, contratação e contexto foram reutilizados no cenário.
+
+| Referência primária consultada | Ideia aproveitada | Aplicação |
+| --- | --- | --- |
+| [Gather — Looking & Moving Around the Office](https://support.gather.town/articles/1285650718-looking-moving-around-the-office) | Andar com WASD/setas ou mouse, aproximar-se de colegas e usar destinos do escritório. | Personagem controlável, clique para caminhar, aproximação de agentes e lista acessível de destinos. |
+| [Red Blob Games — Introduction to the A* Algorithm](https://www.redblobgames.com/pathfinding/a-star/introduction.html) | Representar o mapa como grafo, bloquear obstáculos e reconstruir o caminho até o objetivo. | Implementação própria de A* em grade, margem de colisão para o personagem e passagem pela porta da sala de reunião. |
+
+Não foram copiados sprites ou recursos visuais externos. O escritório e os personagens continuam desenhados com Canvas localmente, sem requisições a serviços de IA.
+
+## Escritório como interface — v0.5
+
+As referências de Gather, Kanban e coordenação por especialistas foram aplicadas à organização em quatro salas de produção e uma sala do líder Codex. O detalhamento das escolhas e das fontes está em [INTERFACE-V0.5.md](INTERFACE-V0.5.md).

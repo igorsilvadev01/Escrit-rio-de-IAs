@@ -1,0 +1,97 @@
+/* Private local workstation. Render provider output as text, never executable HTML. */
+(()=>{
+  'use strict';
+  const A=window.FirmaAccess,U=window.FirmaUI,E=window.FirmaEngine;if(!A.isAdmin)return;
+  const $=id=>document.getElementById(id),names={leadership:'Líder · Codex',planning:'Planejamento',development:'Desenvolvimento',testing:'Testes / revisão',publishing:'Conteúdo / postagem'};
+  const link=document.createElement('link');link.rel='stylesheet';link.href='studio.css';document.head.append(link);
+  const launch=document.createElement('button');launch.type='button';launch.id='studio-open';launch.className='studio-launch';launch.textContent='⌘ Bancada';launch.title='Código, tarefas, terminal e chat das IAs';document.querySelector('.topbar-right').prepend(launch);
+  const dialog=document.createElement('dialog');dialog.id='studio';dialog.setAttribute('aria-labelledby','studio-title');
+  dialog.innerHTML=`<div class="st-shell"><header class="st-top"><div><h2 id="studio-title">Bancada da Firma <span aria-hidden="true">↗</span></h2><p>Seu projeto, suas decisões. Uma conversa para cada função.</p></div><div class="st-top-actions"><span class="st-pill">● LOCAL · PRIVADO</span><button type="button" class="st-button" id="st-connections">Conexões</button><button type="button" class="st-button" id="st-close">Voltar ao escritório ×</button></div></header>
+    <nav class="st-tabs" aria-label="Áreas da Bancada" role="tablist"><button type="button" role="tab" data-pane="code" aria-selected="true">Código</button><button type="button" role="tab" data-pane="chat" aria-selected="false">Chat</button><button type="button" role="tab" data-pane="tasks" aria-selected="false">Tarefas</button><button type="button" role="tab" data-pane="terminal" aria-selected="false">Terminal</button></nav>
+    <div class="st-grid st-pane-code" id="st-grid"><aside class="st-files" aria-label="Arquivos do projeto"><p class="st-caption">Explorador · Firma</p><div id="st-file-list"></div><p class="st-note">Somente arquivos de código e documentação. Segredos e pastas privadas ficam fora.</p></aside>
+      <section class="st-work" aria-label="Código, tarefas e terminal"><div class="st-editor"><div class="st-editor-head"><strong id="st-file-name">Escolha um arquivo</strong><div><small id="st-file-state">SOMENTE LEITURA</small> <button type="button" class="st-button" id="st-copy-file">Copiar</button></div><select class="st-mobile-file" id="st-file-select" aria-label="Abrir arquivo"></select></div><div class="st-code-wrap" tabindex="0" aria-label="Código do arquivo"><pre class="st-lines" id="st-lines" aria-hidden="true">1</pre><pre><code id="st-code">Abrindo arquivos do projeto…</code></pre></div><p class="st-editor-note">Mudanças salvas no VS Code aparecem aqui automaticamente. As IAs propõem código pelo chat, sem alterar estes arquivos.</p></div>
+      <section class="st-task-view" id="st-task-view" aria-label="Encaminhar funções"><h3>Da ideia à entrega</h3><p class="st-note">Escolha a função e o agente. Missões reais usam a IA configurada e aguardam sua revisão.</p><form class="st-task-form" id="st-task-form"><div class="st-form-row"><label>Função<select id="st-task-role">${Object.entries(names).filter(([r])=>r!=='leadership').map(([r,n])=>`<option value="${r}">${n}</option>`).join('')}</select></label><label>Agente<select id="st-task-agent" required></select></label></div><label>Título<input id="st-task-title" required maxlength="100" placeholder="O que vamos construir?"></label><label>Briefing<textarea id="st-task-description" required maxlength="3000" placeholder="Objetivo, requisitos e resultado esperado."></textarea></label><label class="st-check"><input id="st-task-send" type="checkbox"> Autorizar envio imediato à IA, incluindo o briefing e o contexto da missão. Consome uma chamada e pode gerar cobrança conforme seu plano. Sem marcar, salva sem executar.</label><button type="submit" class="st-button st-primary">Criar missão</button></form><div class="st-task-list" id="st-task-list"></div></section>
+      <section class="st-terminal" aria-label="Terminal de verificações"><div class="st-terminal-head"><strong>TERMINAL REAL</strong><select id="st-command" aria-label="Comando de verificação"><option value="syntax">Sintaxe do arquivo aberto</option><option value="tests">Testes automatizados</option><option value="status">git status</option><option value="diff">git diff --stat</option></select><button type="button" class="st-button st-primary" id="st-run">Executar</button><button type="button" class="st-button" id="st-stop" disabled>Parar</button></div><pre id="st-terminal-output" tabindex="0" aria-live="off"></pre></section></section>
+      <section class="st-chat" aria-label="Chat com as IAs"><header class="st-chat-head"><p class="st-caption">Conversas por função</p><select id="st-role" aria-label="Função da IA">${Object.entries(names).map(([r,n])=>`<option value="${r}">${n}</option>`).join('')}</select><div class="st-chat-meta"><span id="st-model">Conectando…</span><button type="button" class="st-button" id="st-clear">Limpar histórico</button></div></header><div class="st-messages" id="st-messages" role="log" aria-label="Histórico da conversa"></div><form class="st-composer" id="st-chat-form"><label for="st-prompt">Sua mensagem</label><textarea id="st-prompt" required maxlength="6000" placeholder="Converse, peça código ou encaminhe uma ideia…"></textarea><label><input id="st-attach" type="checkbox"> Anexar somente o arquivo aberto: <span id="st-attached-name">nenhum</span></label><label><input id="st-consent" type="checkbox" required> Autorizo enviar esta conversa e o arquivo marcado ao provedor. Consome a mesma cota das missões; cobranças dependem da conta.</label><div class="st-composer-actions"><button type="button" class="st-button" id="st-cancel-chat" disabled>Cancelar resposta</button><button type="submit" class="st-button st-primary" id="st-send">Enviar mensagem ↗</button></div><p class="st-note">Respostas em streaming quando o provedor envia trechos. Sem ferramentas automáticas, shell ou edição. Não cole senhas nem chaves.</p></form></section></div>
+    <footer><p class="st-error" id="st-error" role="alert"></p><div class="st-footer"><span id="st-usage">Atualizando cota…</span><span id="st-live" role="status">Sincronizando</span><span>Propostas de IA exigem revisão humana</span></div></footer></div>`;
+  document.body.append(dialog);
+  let meta=null,data=null,files=[],selected='',role='leadership',timer=null,polling=false,lastFiles=0,lastFile=0,fileHash='',fileText='',taskKey='',messagesKey='',lastTerminal='',fileLoading=false;
+  function error(e){$('st-error').textContent=e?.message||String(e||'');}
+  function pane(name){$('st-grid').className='st-grid st-pane-'+name;dialog.querySelectorAll('[data-pane]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pane===name)));}
+  function text(tag,value,className){const el=document.createElement(tag);el.textContent=value;if(className)el.className=className;return el;}
+  async function copy(value){try{await navigator.clipboard.writeText(value);$('st-live').textContent='Copiado para a área de transferência';}catch{error(new Error('Não foi possível copiar. Selecione o texto e copie manualmente.'));}}
+  function renderFiles(){
+    const list=$('st-file-list'),select=$('st-file-select');list.replaceChildren();select.replaceChildren();
+    for(const file of files){const b=text('button',file.path,'st-file');b.type='button';b.dataset.file=file.path;b.setAttribute('aria-current',String(file.path===selected));list.append(b);const option=text('option',file.path);option.value=file.path;select.append(option);}
+    select.value=selected;
+  }
+  async function openFile(name){
+    if(fileLoading)return;fileLoading=true;
+    try{const result=await A.studioRead('file?path='+encodeURIComponent(name));if(!dialog.open)return;
+      if(name!==selected||result.hash!==fileHash){selected=name;fileHash=result.hash;fileText=result.text;$('st-code').textContent=fileText;$('st-lines').textContent=Array.from({length:fileText.split('\n').length},(_,i)=>i+1).join('\n');$('st-file-name').textContent=name;$('st-file-state').textContent='AO VIVO · SOMENTE LEITURA';$('st-attached-name').textContent=name;renderFiles();}
+      lastFile=Date.now();
+    }catch(e){error(e);}finally{fileLoading=false;}
+  }
+  function bodyContent(body,value){
+    body.replaceChildren();const regex=/```([^\n]*)\n([\s\S]*?)```/g;let index=0,match;
+    while((match=regex.exec(value))){if(match.index>index)body.append(document.createTextNode(value.slice(index,match.index)));const pre=text('pre',match[2]);pre.setAttribute('aria-label','Código proposto, não executado');body.append(pre);const button=text('button','Copiar código','st-button');button.type='button';const code=match[2];button.onclick=()=>copy(code);body.append(button);index=regex.lastIndex;}
+    if(index<value.length)body.append(document.createTextNode(value.slice(index)));
+  }
+  function taskDraft(content){pane('tasks');$('st-task-role').value=role==='leadership'?'planning':role;renderAgents();$('st-task-title').value='Proposta de '+names[role];$('st-task-description').value=content.slice(0,3000);$('st-task-send').checked=false;$('st-task-title').focus();}
+  function renderMessages(){
+    const history=data.chats[role]||[],key=role+JSON.stringify(history);if(key===messagesKey)return;messagesKey=key;
+    const box=$('st-messages'),nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<100;
+    if(!history.length){box.replaceChildren();const empty=text('div','','st-empty');empty.append(text('strong','Uma conversa, um propósito.'),text('span','Peça ajuda nesta função. O histórico é privado, separado por função e salvo no servidor. Nenhum arquivo é enviado sem você marcar o anexo.'));box.append(empty);return;}
+    box.querySelector('.st-empty')?.remove();const wanted=new Set(history.map(m=>m.id));for(const child of [...box.children])if(!wanted.has(child.dataset.id))child.remove();
+    for(const message of history){let item=[...box.children].find(el=>el.dataset.id===message.id);if(!item){item=document.createElement('article');item.className='st-message';item.dataset.id=message.id;item.dataset.role=message.role;item.append(document.createElement('header'),text('div','','st-message-body'),text('p','','st-message-status'),text('div','','st-message-actions'));box.append(item);}
+      item.querySelector('header').textContent=message.role==='user'?'Você'+(message.file?' · '+message.file:''):(message.provider||'IA')+' · '+(message.model||'padrão da conta');
+      const body=item.querySelector('.st-message-body'),content=message.text||(message.status==='running'?'Aguardando o primeiro trecho do provedor…':'Sem resposta.');if(body.dataset.rendered!==content){bodyContent(body,content);body.dataset.rendered=content;}
+      const status=item.querySelector('.st-message-status');status.textContent=message.role==='user'?'':message.error||(message.status==='running'?'Recebendo resposta real…':message.status==='completed'?'Resposta concluída · revise antes de usar'+(message.tokens?' · '+message.tokens+' tokens':''):'Resposta interrompida');status.dataset.error=String(['error','interrupted'].includes(message.status));
+      const actions=item.querySelector('.st-message-actions');if(message.role==='assistant'&&message.status==='completed'&&!actions.children.length){const copyButton=text('button','Copiar resposta','st-button');copyButton.type='button';copyButton.onclick=()=>copy(message.text);const mission=text('button','Criar missão a partir disto','st-button');mission.type='button';mission.onclick=()=>taskDraft(message.text);actions.append(copyButton,mission);}
+    }
+    if(nearBottom||box.scrollTop===0)box.scrollTop=box.scrollHeight;
+  }
+  function renderAgents(){const select=$('st-task-agent'),old=select.value;select.replaceChildren();for(const agent of U.state.agents.filter(a=>E.departmentOf(a)===$('st-task-role').value)){const option=text('option',agent.name+' · '+agent.role);option.value=agent.id;select.append(option);}if([...select.options].some(o=>o.value===old))select.value=old;}
+  function renderTasks(){
+    const tasks=U.state.tasks,key=JSON.stringify(tasks.map(t=>[t.id,t.title,t.status,t.progress,t.agent,t.execution?.status,t.result,t.execution?.error]));if(key===taskKey)return;taskKey=key;const box=$('st-task-list');
+    const opened=new Set([...box.querySelectorAll('details[open]')].map(el=>el.dataset.id));box.replaceChildren();
+    for(const task of [...tasks].reverse()){
+      const card=document.createElement('details');card.className='st-task';card.dataset.id=task.id;card.open=opened.has(task.id);const summary=document.createElement('summary');summary.append(text('strong',task.title),text('span',({working:'Produzindo',review:'Para revisar',queued:'Na fila',blocked:'Dependência',done:'Aprovada'})[task.status]||task.status));card.append(summary);
+      const ex=task.execution,agent=U.state.agents.find(a=>a.id===task.agent);card.append(text('p',(agent?.name||'Equipe')+' · '+(ex?ex.provider+' / '+ex.model+' · '+ex.status:'SIMULAÇÃO — sem IA real')));const progress=document.createElement('progress');progress.max=100;progress.value=task.progress;progress.setAttribute('aria-label','Progresso registrado da tarefa');card.append(progress);
+      card.append(text('p',task.description));if(ex?.error)card.append(text('p',ex.error));if(task.result)card.append(text('pre',task.result));
+      const inspect=text('button','Abrir missão / revisar','st-button');inspect.type='button';inspect.onclick=()=>{dialog.close();U.taskDetail(task.id);};card.append(inspect);
+      if(ex&&['held','error'].includes(ex.status)&&!['review','done'].includes(task.status)){const run=text('button','Autorizar envio à IA atual','st-button');run.type='button';run.onclick=async()=>{if(!confirm('Enviar esta missão, suas instruções e contexto à IA configurada? Consome uma chamada e pode gerar cobrança conforme sua conta.'))return;try{error('');U.applyRemote(await A.ai('queue',{id:task.id,confirm:true}));await refresh();}catch(e){error(e);}};card.append(run);}
+      box.append(card);
+    }
+  }
+  function renderStatus(){
+    const config=meta.roles[role],provider=meta.providers.find(p=>p.id===config.provider),busy=!!data.chatRunning||!!meta.running||meta.pending>0;
+    $('st-model').textContent=config.provider+' · '+(config.model||'padrão')+' · '+(provider?.connected?'conectado':'desconectado');
+    $('st-usage').textContent=meta.usage.used+' / '+meta.usage.limit+' chamadas hoje (UTC) · chat e missões';
+    $('st-send').disabled=busy||!provider?.connected||meta.usage.used>=meta.usage.limit;
+    $('st-cancel-chat').disabled=data.chatRunning?.role!==role;$('st-clear').disabled=data.chatRunning?.role===role;
+    $('st-run').disabled=data.terminal.status==='running';$('st-stop').disabled=data.terminal.status!=='running';
+    const value=data.terminal.output;if(value!==lastTerminal){const box=$('st-terminal-output'),atEnd=box.scrollHeight-box.scrollTop-box.clientHeight<60;box.textContent=value;lastTerminal=value;if(atEnd)box.scrollTop=box.scrollHeight;}
+    $('st-live').textContent=data.chatRunning?'IA respondendo · '+names[data.chatRunning.role]:meta.running?'Missão em execução':data.terminal.status==='running'?'Comando local em execução':'Sincronizado · somente localhost';
+    renderMessages();renderTasks();
+  }
+  async function refresh(){
+    if(polling||!dialog.open)return;polling=true;
+    try{const [next,nextMeta]=await Promise.all([A.studioRead('status'),A.aiStatus()]);if(!dialog.open)return;data=next;meta=nextMeta;renderStatus();
+      if(Date.now()-lastFiles>5000){const result=await A.studioRead('files');files=result.files;lastFiles=Date.now();renderFiles();if(!selected&&files.length)await openFile(files.find(f=>f.path==='app.js')?.path||files[0].path);}
+      if(selected&&Date.now()-lastFile>2000)await openFile(selected);
+    }catch(e){error(e);if(e.status===401){dialog.close();U.toast('Sessão expirada. Entre novamente para abrir a Bancada.');}}finally{polling=false;}
+  }
+  async function open(){if(dialog.open)return;error('');if($('modal').open)U.closeModal();dialog.showModal();document.body.classList.add('studio-open');window.dispatchEvent(new Event('firma-studio-open'));await refresh();timer=setInterval(()=>{if(!document.hidden)refresh();},900);}
+  launch.onclick=open;$('st-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{clearInterval(timer);document.body.classList.remove('studio-open');launch.focus();});
+  $('st-connections').onclick=()=>{dialog.close();window.FirmaAI.open().catch(error);};
+  dialog.querySelectorAll('[data-pane]').forEach(b=>b.onclick=()=>pane(b.dataset.pane));$('st-file-list').onclick=e=>{const file=e.target.closest('[data-file]');if(file)openFile(file.dataset.file);};$('st-file-select').onchange=e=>openFile(e.target.value);$('st-copy-file').onclick=()=>copy(fileText);
+  $('st-role').onchange=e=>{role=e.target.value;messagesKey='';$('st-consent').checked=false;error('');if(data)renderStatus();};$('st-task-role').onchange=renderAgents;renderAgents();
+  $('st-chat-form').onsubmit=async e=>{e.preventDefault();try{error('');await A.studio('chat.send',{role,text:$('st-prompt').value,confirm:$('st-consent').checked,...($('st-attach').checked&&selected?{file:selected}:{})});$('st-prompt').value='';$('st-consent').checked=false;await refresh();}catch(failure){error(failure);}};
+  $('st-cancel-chat').onclick=async()=>{try{await A.studio('chat.cancel',{role});await refresh();}catch(e){error(e);}};
+  $('st-clear').onclick=async()=>{if(!confirm('Apagar o histórico desta função? Essa limpeza não pode ser desfeita.'))return;try{await A.studio('chat.clear',{role,confirm:true});await refresh();}catch(e){error(e);}};
+  $('st-run').onclick=async()=>{if(!confirm('Executar esta verificação local no projeto Firma? Testes executam código local; não há shell livre e nenhuma chave das IAs é repassada ao processo.'))return;try{error('');await A.studio('terminal.run',{command:$('st-command').value,file:selected,confirm:true});await refresh();}catch(e){error(e);}};
+  $('st-stop').onclick=async()=>{try{await A.studio('terminal.cancel');await refresh();}catch(e){error(e);}};
+  $('st-task-form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('[type=submit]');button.disabled=true;try{error('');const before=new Set(U.state.tasks.map(t=>t.id));const result=await A.command('task.create',{template:E.departments[$('st-task-role').value].template,agent:$('st-task-agent').value,title:$('st-task-title').value,description:$('st-task-description').value,executionMode:'real'});U.applyRemote(result);const created=result.state.tasks.find(t=>!before.has(t.id));if($('st-task-send').checked)U.applyRemote(await A.ai('queue',{id:created.id,confirm:true}));$('st-task-title').value=$('st-task-description').value='';$('st-task-send').checked=false;await refresh();U.toast('Missão criada. Acompanhe a entrega no quadro.');}catch(failure){error(failure);}finally{button.disabled=false;}};
+  window.FirmaStudio={open};
+})();
