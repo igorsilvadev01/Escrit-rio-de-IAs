@@ -14,12 +14,6 @@
   const rect=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),w,h);};
   function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
   function text(s,x,y,color='#b7c1ab',size=10){ctx.fillStyle=color;ctx.font=`${size}px monospace`;ctx.textAlign='left';ctx.fillText(s,x,y);}
-  function plant(x,y,large=false){const s=large?1.4:1;ctx.save();ctx.translate(x,y);ctx.scale(s,s);rect(-11,0,23,17,'#272f25');rect(-9,2,19,15,'#b2936a');rect(-12,-3,25,6,'#c7ae80');rect(-3,-26,6,25,'#5b7441');rect(-16,-25,13,9,'#6d8650');rect(3,-32,13,11,'#87a15e');rect(-9,-39,11,14,'#91a66b');rect(-20,-19,13,9,'#8c9b5c');rect(4,-17,15,8,'#6b884c');ctx.restore();}
-  function chair(x,y,color='#697b57'){rect(x-12,y+7,24,8,'#303c2e');rect(x-13,y-9,26,20,color);rect(x-10,y-6,20,12,'#7f9069');rect(x-2,y+16,4,8,'#3c4539');rect(x-12,y+23,24,3,'#3b4438');}
-  function desk(x,y){rect(x+4,y+7,112,55,'#29312450');rect(x,y+8,108,46,'#816e4d');rect(x,y,108,44,'#c4aa79');rect(x+3,y+3,102,37,'#d1b886');line(x+5,y+36,x+103,y+36,'#b69c6f');rect(x+11,y+49,7,14,'#62583d');rect(x+91,y+49,7,14,'#62583d');rect(x+30,y-17,43,29,'#38423a');rect(x+33,y-14,37,22,'#759d90');rect(x+36,y-11,30,15,'#a3c5b1');rect(x+39,y-8,15,2,'#5c8d7e');rect(x+39,y-3,23,2,'#81ac97');rect(x+48,y+12,7,6,'#545c49');rect(x+42,y+17,20,3,'#636d54');rect(x+32,y+25,42,9,'#e0d6b0');for(let i=0;i<7;i++)rect(x+35+i*5,y+28,3,2,'#adad90');rect(x+83,y+20,10,12,'#f1e6bd');rect(x+93,y+23,3,6,'#d2c79f');rect(x+86,y+18,5,3,'#6a5940');rect(x+9,y+20,13,16,'#98a1a1');rect(x+11,y+22,9,12,'#c6d4c7');}
-  function windowFrame(x,y,w){rect(x-4,y-4,w+8,66,'#47564a');rect(x,y,w,58,'#adc5b1');rect(x+4,y+4,w-8,50,'#91b7ab');rect(x+8,y+8,w-16,35,'#a3c6b6');rect(x+w/2-2,y,4,58,'#d2d3b5');rect(x,y+57,w,6,'#d7d6b9');rect(x-6,y+63,w+12,8,'#6d7e5c');line(x+9,y+49,x+28,y+14,'#b7d3bd',3);}
-  function bookshelf(x,y){rect(x+4,y+7,104,76,'#34402f');rect(x,y,104,78,'#746648');rect(x+5,y+6,94,29,'#474d34');rect(x+5,y+42,94,29,'#484c35');const cols=['#9f9770','#8eaa90','#c1aa79','#b18f71','#a3af83','#799790'];for(let i=0;i<11;i++){rect(x+9+i*8,y+11+(i%3)*3,6,24-(i%3)*3,cols[i%6]);rect(x+10+i*8,y+14+(i%3)*3,4,2,'#d4cf9f');}for(let i=0;i<7;i++)rect(x+9+i*9,y+48,7,22,cols[(i+2)%6]);rect(x+77,y+52,17,16,'#bcb490');rect(x+80,y+57,11,3,'#787d59');}
-  function wallLabel(label,x,y){rect(x-5,y-12,label.length*6.5+12,19,'#323e31aa');text(label,x,y,'#c2c9ad',10);}
   const positions=new Map();
   const keys=new Set(),directions={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
   let route=[],pending=null,nearby=null,walking=false,facing='down',lastPlayer=state.player,hudKey='',touchDirection=null,seated='',lastAssembly=state.assembly.active;
@@ -108,19 +102,11 @@
     }
     if(route.length){ctx.save();ctx.globalAlpha=.55;ctx.setLineDash([3,8]);ctx.strokeStyle='#70d7ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(state.player.x,state.player.y+12);for(const p of route)ctx.lineTo(p.x,p.y+12);ctx.stroke();ctx.restore();const end=route[route.length-1];ctx.strokeStyle='#ddf8bd';ctx.beginPath();ctx.ellipse(end.x,end.y+12,11,5,0,0,Math.PI*2);ctx.stroke();}
   }
-  function drawPlayer(time){const p=state.player;ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));window.FirmaVillage.sprite(ctx,{name:p.name+' - VOCE',shirt:p.color,skin:p.skin,hair:p.hair,walking,time,sitting:!!seated,facing,player:true});ctx.restore();}
+  function drawPlayer(time){const p=state.player;ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));window.FirmaVillage.sprite(ctx,{name:p.name,shirt:p.color,skin:p.skin,hair:p.hair,walking,time,sitting:!!seated,facing,player:true});ctx.restore();}
   syncMode();
   function targetFor(a){if(state.assembly.active)return W.meetingSeat(state.agents.findIndex(agent=>agent.id===a.id));const department=window.FirmaEngine.departmentOf(a),members=state.agents.filter(agent=>window.FirmaEngine.departmentOf(agent)===department);return W.agentSeat({...a,department},members.findIndex(agent=>agent.id===a.id));}
   function character(x,y,a,time,walking=false,sitting=false){const phase=Array.from(a.id).reduce((sum,c)=>sum+c.charCodeAt(0),0);window.FirmaVillage.sprite(ctx,{name:a.id==='codex-leader'?'Codex':a.name,shirt:a.color,skin:'#dfba92',hair:['#534033','#775340','#9b633e','#403037'][phase%4],phase,walking,time,sitting,facing:'down'});}
   const leader={id:'codex-leader',name:'Codex',role:'Líder da Firma',color:'#ffd15c',rest:false,meetingUntil:0};
-  function workstation(x,y,accent){
-    rect(x+3,y+8,84,42,'#18271d55');rect(x,y+4,84,39,'#8f7958');rect(x,y,84,34,'#c8b286');rect(x+3,y+3,78,27,'#d3be97');
-    rect(x+25,y-16,34,25,'#34493c');rect(x+28,y-13,28,18,accent);rect(x+32,y-9,18,2,'#eff4da99');rect(x+32,y-4,12,2,'#213f3b77');rect(x+39,y+9,5,6,'#6b785b');rect(x+33,y+15,18,3,'#6b785b');rect(x+25,y+21,37,7,'#e5dfc6');rect(x+69,y+14,7,10,'#f0e3c3');
-  }
-  function terminal(station){
-    const room=W.rooms.find(r=>r.id===station.id);if(['leadership','rest','admin'].includes(station.id))return;
-    const x=station.x-22,y=station.y-39;rect(x,y+5,46,19,'#786d54');rect(x,y,46,14,'#b5ac86');rect(x+8,y-15,30,22,'#2a4439');rect(x+11,y-12,24,15,room.color);rect(x+15,y-8,15,2,'#344c3b');rect(x+17,y+9,12,3,'#d5d8b6');
-  }
   function sectorEffects(time){
     for(const room of W.rooms){const activity=sectorActivity[room.id];if(!activity)continue;const barWidth=room.w-18;rect(room.x+9,room.y+room.h-4,barWidth,2,'#a27f57');rect(room.x+9,room.y+room.h-4,barWidth*activity.percent/100,2,room.color);}
     const guide=$('sector-guide');if(!guide)return;const role=window.FirmaStudio?.isOpen?(window.FirmaStudio.room==='admin'?'development':window.FirmaStudio.role):W.roomAt(state.player.x,state.player.y)?.id,activity=sectorActivity[role];
@@ -130,7 +116,6 @@
   }
   function workGesture(a,time,moving){
     const role=a.id==='codex-leader'?'leadership':window.FirmaEngine.departmentOf(a),activity=sectorActivity[role];
-    if(a.id==='codex-leader'){rect(-42,39,110,14,'#49382d');text(activity?.active?'LIDERANDO':'LÍDER · CODEX',-35,49,'#ffd15c',8);}
     if(!activity?.active||moving||a.rest||state.assembly.active)return;
     const assigned=a.id==='codex-leader'||state.tasks.some(t=>t.agent===a.id&&t.status==='working'&&(t.execution?.kind!=='real'||t.execution.status==='running'))||window.FirmaStudio?.live.chatRunning?.role===role;
     if(!assigned)return;const step=reducedMotion.matches?0:Math.floor(time*4)%2;

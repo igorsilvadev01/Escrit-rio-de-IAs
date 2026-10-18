@@ -1,12 +1,16 @@
 # Firma — escritório de IAs em 2D · v0.11
 
-## Planta compacta
+## Nova planta: portas próximas e tema de vila
 
-O mapa passou de 1200 × 1260 para **1200 × 900**, cerca de 29% menor. Os quatro setores ficam junto ao corredor central; descanso e administrador dividem a fileira inferior, sem uma ala distante. A sala do Codex mantém a reunião com 26 lugares e o descanso mantém 25 lugares. Mesas, cadeiras e atalhos continuam funcionais. Ao carregar a planta anterior, o personagem retorna à entrada segura, preservando aparência, visitas, equipe e missões.
+O mapa foi redesenhado para **800 × 480**, com cinco salas em um único bloco. Planejar e Desenvolver ficam acima de Testar e Postar, com portas opostas e apenas uma passagem curta entre elas. A sala à direita é compartilhada por você e Codex: os dois computadores ficam lado a lado, e a mesa de reunião continua disponível para 24 colaboradores e os dois anfitriões. A sala de descanso foi removida; os agentes fazem pausas na própria mesa.
+
+O tema segue a referência visual enviada: grama verde, árvores, madeira, terra, água, ponte, placas e personagens de contorno escuro em pixel art. Os desenhos são locais, feitos em canvas, sem imagens ou serviços externos. A interface e os computadores também usam a paleta de madeira e papel.
+
+Ao carregar uma planta anterior, seu personagem volta à entrada segura. Aparência, equipe, visitas históricas, tarefas, integrações e progresso são preservados. Para ver a mudança, encerre o servidor antigo com `Ctrl+C`, execute **Iniciar Firma.bat** novamente e use `Ctrl+F5` no navegador.
 
 ## Computadores dentro do jogo: código, chat e terminal
 
-Entre como administrador e **clique no Codex ou nos computadores para abrir imediatamente, sem caminhar**. O menu **Mapa e controles** também abre cada estação diretamente. Caminhar com WASD/setas e interagir com **E** continua opcional. A **Sala do administrador**, ao lado do descanso, tem uma mesa com o mesmo chat Codex, código, missões e terminal de desenvolvimento; não duplica contas nem histórico. Veja [Sala do administrador v0.11](docs/ADMIN-V0.11.md).
+Entre como administrador e **clique no Codex ou nos computadores para abrir imediatamente, sem caminhar**. O menu **Mapa e controles** também abre cada estação diretamente. Caminhar com WASD/setas e interagir com **E** continua opcional. Sua **mesa de administrador fica junto à do Codex**, com o mesmo chat, código, missões e terminal de desenvolvimento; não duplica contas nem histórico. O guia [Sala do administrador v0.11](docs/ADMIN-V0.11.md) descreve as ferramentas da mesa; a localização mudou para a sala compartilhada.
 
 Cada setor tem uma animação própria durante o trabalho. A porcentagem é a razão de entregas prontas pelo total de missões do setor; geração real usa indicador de atividade sem inventar percentual de tokens. A simulação é identificada separadamente. Guia: [Computadores e setores v0.10](docs/COMPUTADORES-V0.10.md).
 
@@ -26,13 +30,13 @@ Use **Ordem ao líder Codex**, **Dar ordem à IA** no colaborador ou **Criar flu
 
 Guia de conexão, custos, segurança, limitações e fontes: [IAs reais v0.8](docs/IAS-REAIS-V0.8.md).
 
-Agora com uma paleta viva de azul, ciano, coral e violeta e uma área de reunião dentro da sala do líder. Converse com Codex ou clique na mesa de reunião e escolha **Reunir toda a equipe**. Os colaboradores caminham até seus lugares; as tarefas aguardam sem perder progresso, energia ou pausas pessoais. **Encerrar reunião e liberar equipe** faz todos voltarem aos setores. A convocação é exclusiva do administrador e suporta os 24 colaboradores do escritório, inclusive com a produção pausada.
+Converse com Codex ou clique na mesa de reunião da sala compartilhada e escolha **Reunir toda a equipe**. Os colaboradores caminham até seus lugares; as tarefas aguardam sem perder progresso, energia ou pausas pessoais. **Encerrar reunião e liberar equipe** faz todos voltarem aos setores. A convocação é exclusiva do administrador e suporta os 24 colaboradores do escritório, inclusive com a produção pausada.
 
 Você e Codex agora têm cadeiras reservadas. Ao convocar, seu personagem vai até sua cadeira e senta; o líder também caminha até a reunião. Para levantar, use **E**, WASD, setas ou clique no chão. Você também pode clicar na cadeira ou usar **Sentar na minha cadeira**.
 
-A sexta sala é a **Sala de descanso**, na ala inferior: quatro conjuntos de sofás, café, mesas e uma poltrona exclusiva para você. Colaboradores em pausa vão até lá e retornam aos setores ao retomar o trabalho. A reunião geral tem prioridade sobre a pausa; ao encerrar, quem ainda estiver em pausa volta ao descanso.
+As pausas continuam recuperando energia, na própria mesa de cada colaborador. A reunião geral tem prioridade sobre a pausa; ao encerrar, todos voltam ao respectivo setor.
 
-Detalhes e referências: [Tema e reuniões v0.6](docs/TEMA-REUNIOES-V0.6.md) e [Cadeiras e descanso v0.7](docs/CADEIRAS-DESCANSO-V0.7.md).
+Os guias [Tema e reuniões v0.6](docs/TEMA-REUNIOES-V0.6.md) e [Cadeiras e descanso v0.7](docs/CADEIRAS-DESCANSO-V0.7.md) registram plantas anteriores. A referência atual é a planta de cinco salas descrita acima.
 
 Repositório: [igorsilvadev01/Escrit-rio-de-IAs](https://github.com/igorsilvadev01/Escrit-rio-de-IAs).
 
