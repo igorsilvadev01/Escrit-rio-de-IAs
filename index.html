@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#151719"><title>Firma — seu escritório de IAs</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="work.css"><link rel="stylesheet" href="play.css"><link rel="stylesheet" href="access.css"><link rel="stylesheet" href="office.css"><link rel="stylesheet" href="village.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#3e5d38"><title>Firma — seu escritório de IAs</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="work.css"><link rel="stylesheet" href="play.css"><link rel="stylesheet" href="access.css"><link rel="stylesheet" href="office.css"><link rel="stylesheet" href="village.css"></head>
 <body class="gated">
 <section id="access-gate" class="access-gate" aria-labelledby="access-title">
   <div class="access-story"><a class="brand" href="/" aria-label="Firma início"><span class="brand-mark">f<span>.</span></span><span>firma<span class="brand-dot">.</span></span></a><div class="access-eyebrow"><i class="status-dot"></i> PEQUENAS EQUIPES. GRANDES POSSIBILIDADES.</div><h1 id="access-title">Um escritório vivo.<br>Um lugar para<br><em>suas ideias.</em></h1><p>Especialistas trabalhando, ideias ganhando forma e decisões acontecendo. Entre para administrar ou faça uma visita.</p><div class="access-office" aria-hidden="true"><div class="access-window"></div><div class="access-window"></div><div class="access-desk"><i></i><b></b></div><div class="access-desk"><i></i><b></b></div><span class="access-plant">✦</span></div><span class="access-caption">UM ESCRITÓRIO DE IAs EM MOVIMENTO · SIMULAÇÃO</span></div>
@@ -15,8 +15,8 @@
 <main class="office-shell">
   <header class="topbar game-topbar">
     <div class="game-brand"><span class="mini-mark">f.</span><div><strong id="company-name">Firma HQ</strong><small>SUA FIRMA. UMA PEQUENA VILA.</small></div></div>
-    <div class="game-pulse"><span><i class="status-dot"></i> <b id="working-label">0 produzindo</b></span><span><b id="review-count">0</b> para revisar</span><span id="stat-time">00:00</span></div>
-    <div class="topbar-right"><span id="access-role" class="access-role"></span><button type="button" id="session-exit" class="session-exit">Sair</button></div>
+    <div class="game-pulse"><span id="office-status" class="office-status">Expediente aberto</span><span><i class="status-dot"></i> <b id="working-label">0 produzindo</b></span><span><b id="review-count">0</b> para revisar</span><span id="stat-time">00:00</span></div>
+    <div class="topbar-right"><button type="button" id="management-button" class="primary-button" aria-haspopup="dialog">Gestão <span id="management-count" hidden>0</span></button><button type="button" id="office-toggle" class="office-toggle" hidden>Fechar escritório</button><span id="access-role" class="access-role"></span><button type="button" id="session-exit" class="session-exit">Sair</button></div>
   </header>
   <section id="office-view" class="game-world" aria-label="Escritório jogável da Firma">
     <div class="office-scene">
@@ -29,10 +29,10 @@
     <footer class="game-controls">
       <div class="player-chip"><i></i><strong id="player-name">Você · Fundador</strong><small id="save-status">Estado compartilhado no servidor</small></div>
       <button type="button" id="interact-button" class="primary-button" disabled>Aproxime-se de um terminal ou agente</button>
-      <details class="office-destinations"><summary>Mapa e controles <span>⌘</span></summary><div class="navigation-popover"><p id="play-help"><kbd>WASD</kbd> ou <kbd>↑ ↓ ← →</kbd> andar<br><kbd>E</kbd> interagir · <kbd>Esc</kbd> cancelar destino<br>Clique no chão para caminhar; nos computadores, para abrir sem andar.</p><div id="world-destinations"></div><div class="zoom-controls"><button id="zoom-out" aria-label="Diminuir zoom">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Aumentar zoom">＋</button></div><span class="navigation-note">Missões e ferramentas ficam nos terminais das salas. O líder Codex reúne as opções do escritório.</span></div></details>
+      <details class="office-destinations"><summary>Mapa e controles <span>⌘</span></summary><div class="navigation-popover"><p id="play-help"><kbd>WASD</kbd> ou <kbd>↑ ↓ ← →</kbd> andar<br><kbd>E</kbd> interagir · <kbd>Esc</kbd> cancelar destino<br>Clique no chão para caminhar; nos computadores, para abrir sem andar.</p><div id="world-destinations"></div><div class="zoom-controls"><button id="zoom-out" aria-label="Diminuir zoom">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Aumentar zoom">＋</button></div><span class="navigation-note">Use Gestão para criar tarefas, acompanhar a equipe e revisar entregas sem caminhar.</span></div></details>
     </footer>
   </section>
 </main>
 <dialog id="modal" aria-labelledby="modal-title"><form id="modal-form"><div class="modal-heading"><h2 id="modal-title"></h2><button type="button" id="close-modal" aria-label="Fechar">×</button></div><div id="modal-content"></div><p id="modal-error" role="alert"></p><div class="modal-actions"><button type="button" class="secondary-button" id="cancel-modal">Fechar</button><button class="primary-button" id="modal-submit">Salvar</button></div></form></dialog>
-<div id="toast" role="status"></div><input type="file" id="import-file" accept=".json,application/json" hidden><script src="engine.js"></script><script src="world.js"></script><script src="village-renderer.js"></script><script src="access.js"></script>
+<div id="toast" role="status"></div><input type="file" id="import-file" accept=".json,application/json" hidden><script src="engine.js"></script><script src="world.js"></script><script src="scene-model.js"></script><script src="village-renderer.js"></script><script src="access.js"></script>
 </body></html>

@@ -1,1 +1,12 @@
-{"name":"firma-ai-office","version":"0.11.0","private":true,"description":"Escritório jogável com acesso por clique, sala do administrador, código ao vivo, chat e terminal por setor","scripts":{"start":"node server.cjs","check":"node --check app.js && node --check ui.js && node --check engine.js && node --check world.js && node --check access.js && node --check server.cjs && node --check ai-ui.js && node --check ai-runtime.cjs && node --check ai-providers.cjs && node --check codex-bridge.cjs && node --check workstation.cjs && node --check studio.js && node --check activity.js && node --check village-renderer.js","test":"node --test tests/engine.test.cjs tests/world.test.cjs tests/server.test.cjs tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs","test:ai":"node --test tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs"}}
+{
+  "name": "firma-ai-office",
+  "version": "0.13.0",
+  "private": true,
+  "description": "Escritório jogável com acesso por clique, sala do administrador, código ao vivo, chat e terminal por setor",
+  "scripts": {
+    "start": "node server.cjs",
+    "check": "node --check app.js && node --check ui.js && node --check engine.js && node --check world.js && node --check access.js && node --check server.cjs && node --check ai-ui.js && node --check ai-runtime.cjs && node --check ai-providers.cjs && node --check codex-bridge.cjs && node --check workstation.cjs && node --check studio.js && node --check activity.js && node --check village-renderer.js && node --check workspace-projects.cjs && node --check company.cjs && node --check company-backup.cjs && node --check company-ui.js && node --check company-tools.cjs && node --check scene-model.js && node --check scene-controls.js",
+    "test": "node --test tests/engine.test.cjs tests/world.test.cjs tests/server.test.cjs tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs tests/office-life.test.cjs tests/company.test.cjs tests/scene.test.cjs",
+    "test:ai": "node --test tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs"
+  }
+}

@@ -20,3 +20,4 @@ firma-backup-*.json
 
 # Admin credentials, private setup link and server office data
 .firma-private/
+/projects/

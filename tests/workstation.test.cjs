@@ -19,6 +19,40 @@ async function fixture(options={}){
   async function connect(){await ai('connect',{provider:'gemini',key:'QA_SECRET_API_KEY_1234567890'});await ai('codex.login');await ai('codex.check');const roles={...app.ai.settings.roles};for(const role of ['planning','testing','publishing'])roles[role]={provider:'gemini',model:'gemini-3.8-flash'};await ai('settings',{roles,dailyLimit:10,maxTokens:1024});}
   return {dir,root,app,fakes,request,post,action,ai,status,connect,get auth(){return auth;},async close(){await new Promise(r=>app.server.close(r));await new Promise(r=>setTimeout(r,70));assert.equal(path.dirname(dir),os.tmpdir());assert.ok(path.basename(dir).startsWith('firma-studio-test-'));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}};
 }
+test('preview pages are private, sandboxed, temporary and never weaken the main application policy',async()=>{
+  const f=await fixture();try{
+    const created=await f.action('preview.create',{html:'<!doctype html><h1>Prévia isolada</h1><script>window.PREVIEW_TEST=true;</script>'});assert.equal(created.status,200);const {url}=await created.json();
+    assert.equal((await f.request(url,{})).status,401);
+    const page=await f.request(url);assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/sandbox allow-scripts;/);assert.ok(!page.headers.get('content-security-policy').includes('allow-same-origin'));assert.match(page.headers.get('content-security-policy'),/connect-src 'none'/);assert.match(page.headers.get('content-type'),/text\/html/);assert.equal(page.headers.get('cache-control'),'no-store');assert.match(await page.text(),/Prévia isolada/);
+    const main=await f.request('/');assert.match(main.headers.get('content-security-policy'),/script-src 'self';/);assert.equal(main.headers.get('x-frame-options'),'DENY');
+    assert.equal((await f.action('preview.create',{html:'x'.repeat(1_000_001)})).status,400);
+    for(let i=0;i<12;i++)await f.action('preview.create',{html:'<p>'+i+'</p>'});assert.equal((await f.request(url)).status,404);
+    assert.equal(f.fakes.calls.length,0);
+  }finally{await f.close();}
+});
+test('local projects persist real files with conflict protection, backups and restricted paths',async()=>{
+  const f=await fixture();try{
+    const response=await f.action('project.create',{name:'Meu aplicativo',description:'Projeto real de QA'});assert.equal(response.status,200);const {project}=await response.json();
+    const file='src/main.js';let r=await f.action('file.save',{project:project.id,path:file,text:'console.log("primeira versão");\n',confirm:true});assert.equal(r.status,200);const first=await r.json();assert.equal(fs.readFileSync(path.join(project.path,'src','main.js'),'utf8'),first.text);
+    assert.equal((await f.action('file.save',{project:project.id,path:file,text:'overwrite',hash:'stale',confirm:true})).status,400);
+    assert.equal((await f.action('file.save',{project:project.id,path:file,text:'console.log("nova versão");\n',hash:first.hash,confirm:false})).status,400);
+    r=await f.action('file.save',{project:project.id,path:file,text:'console.log("nova versão");\n',hash:first.hash,confirm:true});assert.equal(r.status,200);assert.equal(fs.readdirSync(path.join(f.dir,'private','file-backups')).length,1);
+    for(const name of ['../escape.js','src/../../escape.js','.env','src/token.json','CON.js','dir./x.js'])assert.equal((await f.action('file.save',{project:project.id,path:name,text:'bad',confirm:true})).status,400,name);
+    await f.action('prompt.save',{title:'Meu prompt',text:'Revisar meu projeto'});const persisted=JSON.parse(fs.readFileSync(path.join(f.dir,'private','projects.json'),'utf8'));assert.equal(persisted.projects[0].id,project.id);assert.equal(persisted.prompts[0].text,'Revisar meu projeto');
+    const read=await (await f.request('/api/studio/file?project='+project.id+'&path='+file)).json();assert.match(read.text,/nova versão/);assert.equal(f.fakes.calls.length,0);
+    try{fs.symlinkSync(f.root,path.join(project.path,'linked'),'junction');assert.equal((await f.action('file.save',{project:project.id,path:'linked/escape.js',text:'bad',confirm:true})).status,400);}catch(e){if(e.code!=='EPERM')throw e;}
+  }finally{await f.close();}
+});
+test('individual agent conversations isolate histories, identity, cancellation and persisted keys',async()=>{
+  const f=await fixture();try{
+    await f.connect();
+    for(const agentId of ['1','2']){assert.equal((await f.action('chat.send',{role:'planning',agentId,text:'Mensagem exclusiva '+agentId,confirm:true})).status,200);await wait(async()=>!(await f.status()).chatRunning);}
+    const s=await f.status();assert.equal(s.chats['agent:1'].length,2);assert.equal(s.chats['agent:2'].length,2);assert.equal(s.chats.planning.length,0);assert.equal(f.fakes.calls.at(-1).payload.contents.length,1);assert.match(JSON.stringify(f.fakes.calls.at(-1).payload),/Luna/);assert.ok(!JSON.stringify(f.fakes.calls.at(-1).payload).includes('Mensagem exclusiva 1'));
+    assert.equal((await f.action('chat.send',{role:'planning',agentId:'inexistente',text:'oi',confirm:true})).status,400);
+    await f.action('chat.clear',{role:'planning',agentId:'1',confirm:true});assert.equal((await f.status()).chats['agent:1'].length,0);assert.equal((await f.status()).chats['agent:2'].length,2);
+    const saved=JSON.parse(fs.readFileSync(path.join(f.dir,'private','chats.json'),'utf8'));assert.equal(saved['agent:2'].length,2);
+  }finally{await f.close();}
+});
 test('studio APIs require admin, local origin, JSON and CSRF; no private files or traversal',async()=>{
   const f=await fixture();try{
     for(const url of ['/api/studio/status','/api/studio/files','/api/studio/file?path=app.js'])assert.equal((await f.request(url,{})).status,401);

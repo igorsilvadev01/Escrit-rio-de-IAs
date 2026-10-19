@@ -1,8 +1,45 @@
-# Firma — escritório de IAs em 2D · v0.11
+# Firma — escritório de IAs em 2D · v0.13
 
-## Nova planta: portas próximas e tema de vila
+O escritório agora tem profundidade compartilhada entre móveis e personagens, setores com identidade própria, poses de trabalho e café e modos **Ambiente / Trabalho**. Use **Ver tudo / Seguir / Minha mesa** para a câmera e **Cenário e equipe** para personalizar materiais, iluminação, som opcional e acessar colegas. Avisos do projeto ativo abrem suas tarefas. Detalhes e verificação: [Evolução visual aplicada](docs/EVOLUCAO-VISUAL-ESCRITORIO.md).
 
-O mapa foi redesenhado para **800 × 480**, com cinco salas em um único bloco. Planejar e Desenvolver ficam acima de Testar e Postar, com portas opostas e apenas uma passagem curta entre elas. A sala à direita é compartilhada por você e Codex: os dois computadores ficam lado a lado, e a mesa de reunião continua disponível para 24 colaboradores e os dois anfitriões. A sala de descanso foi removida; os agentes fazem pausas na própria mesa.
+Guia de uso, capacidades e limites desta versão: [Capacidades atuais](docs/CAPACIDADES-ATUAIS.md). A pesquisa e o quadro de implementação das 16 frentes estão no [Plano de evolução da Firma](docs/EVOLUCAO-DO-PROJETO.md). Documentos com versões antigas no nome são registros históricos.
+
+## Projetos, planos e execução em cópias
+
+O seletor no topo sincroniza projeto, gestão, bancada e conversas individuais. **Projeto ↗** abre planos editáveis, memória aprovada, execuções, caixa de entrada e ajustes. Cada projeto tem objetivo, equipe e limites próprios.
+
+Prepare uma cópia de uma tarefa nos modos **Manual**, **Assistido** ou **Delegado**. O modo delegado pode propor arquivos e corrigir falhas das verificações cadastradas dentro dos limites autorizados. Compare arquivos, consulte evidências e checkpoints e integre explicitamente; a aprovação da entrega continua na gestão. O servidor registra interrupções e não repete chamadas automaticamente.
+
+Em **Dados e ajustes**, exporte/restaure pacotes completos, compare execuções, consulte diagnóstico e ajuste o cenário. O adaptador Ollama é opcional e detecta modelos já instalados. Cópias, scripts Node e limites estão disponíveis; isolamento de sistema operacional, worktrees Git e publicação externa não estão implementados. Consulte o guia antes de configurar verificações locais.
+
+## Sua bancada de programação
+
+A mesa agora tem **Ctrl+P** para arquivos, comandos pesquisáveis, pastas em árvore, modo foco, busca/substituição e comparação de alterações. Rascunhos e pedidos não enviados são recuperados neste navegador. Habilite **Auto salvar** e **verificar JavaScript ao salvar** para automatizar a rotina local. **Prévia** mostra páginas com CSS/JS do projeto; **Revisar no editor** permite comparar e aproveitar códigos recebidos das IAs.
+
+Clique em **Codex** ou na **sua mesa** para abrir projetos, arquivos editáveis, terminal e conversas individuais com todos os agentes. Crie projetos locais, salve arquivos com **Ctrl+S**, reutilize prompts e acompanhe tarefas. Em **Gestão → Equipe**, **Abrir conversa de trabalho** leva diretamente ao chat da pessoa escolhida. A bancada segue a organização de um editor de código, mantendo o tema da vila.
+
+Projetos ficam em `projects/`, no seu computador; salvamentos preservam uma cópia anterior e verificam conflitos. As IAs continuam dependendo das conexões configuradas e de autorização de envio. Guia, atalhos e limites: [Bancada de programação](docs/BANCADA-PROGRAMACAO.md).
+
+## Gestão simplificada
+
+O botão **Gestão**, no topo, reúne **Visão geral**, **Tarefas**, **Para revisar**, **Equipe** e **Ajustes e IAs**. Crie uma tarefa com título e explicação; o responsável é sugerido pelo tipo de trabalho. Prazo, dependências e detalhes ficam recolhidos. Acompanhe a lista com busca e filtros, abra uma entrega para aprovar ou pedir ajustes e volte à gestão pelo mesmo caminho. O tema de madeira e verde continua em todas as telas.
+
+O botão **Gestão** nos computadores usa o mesmo painel, filtrado por setor. Integrações, contexto, preferências e backups estão em **Ajustes e IAs**. Guia, referências pesquisadas e verificação: [Gestão simplificada](docs/GESTAO-SIMPLES.md).
+
+## Nova planta: setores abertos e tema de vila
+
+O mapa tem **720 × 480**, com quatro setores de produção em um espaço aberto. As paredes e suas colisões foram removidas: é possível circular entre as mesas por qualquer lado livre. O espaço compartilhado por você e Codex tem **184 × 132**, apenas com as duas mesas. A área de reunião foi retirada. Há 24 postos individuais com mesa, computador e cadeira, além de um pequeno cantinho do café com três bancos e um lugar para você.
+
+## Uma equipe viva e horários do escritório
+
+- Os colaboradores ficam sentados nas suas cadeiras, trabalham, levantam para pausas e circulam até o café. Até três colegas em pausa usam os bancos; os demais descansam na própria mesa.
+- Colegas disponíveis também fazem pequenas visitas ao café. Balões mostram falas locais alternadas; ao clicar em alguém, **Conversar com o colega** oferece um diálogo demonstrativo sobre energia, trabalho e café. **Dar ordem à IA** continua sendo a ação separada para usar um modelo real.
+- No topo, **Fechar escritório** encerra o expediente. Os funcionários se despedem e saem um por um pela saída à esquerda; Codex sai por último. **Abrir escritório** traz Codex primeiro e depois os funcionários, também em sequência.
+- O escritório fechado permanece salvo, inclusive ao recarregar a página ou reiniciar o servidor. Missões, feedback, progresso, energia e preferências de pausa são preservados. As animações de saída e chegada usam intervalos de cinco segundos por personagem e continuam mesmo com a produção pausada; elas avançam enquanto o servidor está ligado.
+- Uma resposta real de IA em andamento precisa terminar antes de fechar. Ordens ainda na fila ficam suspensas e exigem nova autorização; abrir o escritório não dispara novas cobranças. As missões simuladas retomam após a chegada de toda a equipe, respeitando a pausa da produção.
+- **Sair** encerra seu login; **Fechar escritório** altera o expediente da equipe. Visitantes acompanham a abertura e o fechamento, mas só o administrador usa esses controles.
+
+Conversas, rotinas sociais e gestos dos personagens são simulados, sem chamadas externas ou consumo de IA.
 
 O tema segue a referência visual enviada: grama verde, árvores, madeira, terra, água, ponte, placas e personagens de contorno escuro em pixel art. Os desenhos são locais, feitos em canvas, sem imagens ou serviços externos. A interface e os computadores também usam a paleta de madeira e papel.
 
@@ -20,7 +57,7 @@ Um escritório jogável com quatro salas de produção, uma sala para o líder C
 
 ## IAs reais
 
-Na sala do Codex, abra **Conectar IAs reais**. Codex usa login oficial do ChatGPT em uma sessão própria da Firma. Gemini usa a chave da plataforma de API — não a senha do chat.
+Em **Gestão → Ajustes e IAs**, abra **Conectar ou configurar IAs**. Codex usa login oficial do ChatGPT em uma sessão própria da Firma. Gemini usa a chave da plataforma de API — não a senha do chat.
 
 Integrações disponíveis: apenas Codex e Gemini. Codex fica na liderança/desenvolvimento; Gemini no planejamento, revisão técnica e conteúdo. Claude foi removido da interface e dos adaptadores de execução. Modelos são ajustáveis conforme sua conta.
 
@@ -30,11 +67,11 @@ Use **Ordem ao líder Codex**, **Dar ordem à IA** no colaborador ou **Criar flu
 
 Guia de conexão, custos, segurança, limitações e fontes: [IAs reais v0.8](docs/IAS-REAIS-V0.8.md).
 
-Converse com Codex ou clique na mesa de reunião da sala compartilhada e escolha **Reunir toda a equipe**. Os colaboradores caminham até seus lugares; as tarefas aguardam sem perder progresso, energia ou pausas pessoais. **Encerrar reunião e liberar equipe** faz todos voltarem aos setores. A convocação é exclusiva do administrador e suporta os 24 colaboradores do escritório, inclusive com a produção pausada.
+O planejamento de entregas continua disponível pelo Codex, com quatro etapas e revisão humana entre elas. A reunião física foi removida para manter o espaço compacto. Ao carregar uma planta antiga, uma convocação que estivesse ativa é encerrada para evitar que as tarefas fiquem presas aguardando uma reunião inexistente.
 
-Você e Codex agora têm cadeiras reservadas. Ao convocar, seu personagem vai até sua cadeira e senta; o líder também caminha até a reunião. Para levantar, use **E**, WASD, setas ou clique no chão. Você também pode clicar na cadeira ou usar **Sentar na minha cadeira**.
+Sua cadeira fica na mesa ao lado do Codex. Clique nela para sentar; para levantar, use **E**, WASD, setas ou clique no chão.
 
-As pausas continuam recuperando energia, na própria mesa de cada colaborador. A reunião geral tem prioridade sobre a pausa; ao encerrar, todos voltam ao respectivo setor.
+As pausas continuam recuperando energia na própria mesa de cada colaborador.
 
 Os guias [Tema e reuniões v0.6](docs/TEMA-REUNIOES-V0.6.md) e [Cadeiras e descanso v0.7](docs/CADEIRAS-DESCANSO-V0.7.md) registram plantas anteriores. A referência atual é a planta de cinco salas descrita acima.
 

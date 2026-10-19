@@ -13,6 +13,21 @@ async function fixture(){
   async function connect(){assert.equal((await action('connect',{provider:'gemini',key:'QA_SECRET_API_KEY_1234567890'})).status,200);await action('codex.login');await action('codex.check');}
   return {dir,app,fakes,request,post,action,get,connect,get auth(){return auth;},async close(){app.ai.close();await new Promise(resolve=>app.server.close(resolve));assert.equal(path.dirname(dir),os.tmpdir());assert.ok(path.basename(dir).startsWith('firma-ai-test-'));fs.rmSync(dir,{recursive:true,force:true});}};
 }
+
+test('office hours are admin-only, suspend queued calls and forbid AI requests until fully open',async()=>{
+  const f=await fixture();try{
+    assert.equal((await f.post('/api/action',{action:'office.close'},{})).status,401);
+    await f.connect();await f.post('/api/action',{action:'simulation',payload:{paused:true}});
+    assert.equal((await f.action('queue',{id:'3',confirm:true})).status,200);assert.equal(f.app.ai.armed.size,1);
+    f.app.ai.activeChat={role:'development',controller:new AbortController()};assert.equal((await f.post('/api/action',{action:'office.close'})).status,409);f.app.ai.activeChat=null;
+    const response=await f.post('/api/action',{action:'office.close'});assert.equal(response.status,200);assert.equal((await response.json()).state.office.status,'closing');assert.equal(f.app.ai.armed.size,0);
+    const s=f.app.ai.getState();assert.equal(s.tasks.find(t=>t.id==='3').execution.status,'held');const progress=s.tasks.map(t=>t.progress);
+    await new Promise(r=>setTimeout(r,1100));assert.ok(s.office.progress>=1,'the door sequence continues when production is paused');
+    E.advanceOffice(s,1000);assert.equal(s.office.status,'closed');E.tick(s,100);assert.deepEqual(s.tasks.map(t=>t.progress),progress);
+    assert.equal((await f.action('queue',{id:'3',confirm:true})).status,400);const count=s.tasks.length;assert.equal((await f.action('flow',{goal:'Não criar enquanto fechado',confirm:true})).status,400);assert.equal((await f.action('advice',{goal:'Não criar enquanto fechado',confirm:true})).status,400);assert.equal(s.tasks.length,count);assert.throws(()=>f.app.ai.chat({role:'development',messages:[{role:'user',text:'hello'}]}),/Abra o escritório/);assert.equal(f.fakes.calls.length,0);
+    assert.equal((await f.post('/api/action',{action:'office.open'})).status,200);assert.equal(s.office.status,'opening');E.advanceOffice(s,1000);assert.equal(s.office.status,'open');assert.equal((await f.get()).paused,true);
+  }finally{await f.close();}
+});
 test('AI endpoints require admin, same-origin JSON and CSRF; secrets are never in snapshots, files or backups',async()=>{
   const f=await fixture();try{
     assert.equal((await f.request('/api/ai/status')).status,401);
@@ -78,7 +93,7 @@ test('provider adapters reject invalid model paths and do not follow redirects o
 
 test('removed Claude has no adapter or credential handling; legacy roles migrate without provider calls',async()=>{
   const f=await fixture();try{
-    assert.deepEqual(Object.keys(P.catalog),['codex','gemini']);
+    assert.deepEqual(Object.keys(P.catalog),['codex','gemini','ollama']);
     assert.equal((await f.action('connect',{provider:'claude',key:'QA_REMOVED_KEY_1234567890'})).status,400);
     const settings={...f.app.ai.settings,roles:{...f.app.ai.settings.roles,planning:{provider:'claude',model:'legacy-model'}}};
     assert.equal((await f.action('settings',settings)).status,400);assert.equal(f.fakes.calls.length,0);

@@ -1,9 +1,9 @@
 // Isolated real backend for browser QA. Never uses the owner's files or credentials.
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {createFirmaServer}=require('../server.cjs');
-function office(ai){
+function office(ai,options={}){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'firma-browser-test-'));
-  const app=createFirmaServer({dataDir:dir,...(ai?{ai}:{})}),server=app.server;
+  const app=createFirmaServer({...options,dataDir:dir,...(ai?{ai}:{})}),server=app.server;
   server.on('close',()=>{if(path.dirname(dir)===os.tmpdir()&&path.basename(dir).startsWith('firma-browser-test-'))fs.rmSync(dir,{recursive:true,force:true});});
   server.setupToken=()=>app.setupToken;
   server.authorizeBrowser=async browser=>{

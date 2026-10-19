@@ -18,6 +18,7 @@
   function setup(){form('setup-form');$('access-heading').textContent='Este escritório é seu.';$('access-description').textContent='Configure seu único acesso de administrador.';status('Escolha uma senha que só você conhece.');}
   function loadScript(src){return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(new Error('Não foi possível carregar o escritório. Atualize a página.'));document.body.append(script);});}
   async function start(role){
+    if(!window.FirmaVillage||!window.FirmaWorld)throw new Error('Os arquivos do novo cenário não foram carregados. Feche o servidor antigo com Ctrl+C, abra Iniciar Firma.bat novamente e atualize esta página com Ctrl+F5.');
     if(started)return;status('Abrindo o escritório…');
     const initial=await request('/api/state'+(role==='visitor'?'?public=1':''));
     const access={role,initial,username:session.username||'',get isAdmin(){return role==='admin';},
@@ -29,12 +30,14 @@
       ai(action,payload={}){if(role!=='admin')return Promise.reject(new Error('Conexões reservadas ao administrador.'));return request('/api/ai/action',{method:'POST',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'application/json','X-Firma-CSRF':session.csrf},body:JSON.stringify({action,payload})});},
       async studioRead(resource){if(role!=='admin')throw new Error('Bancada reservada ao administrador.');return request('/api/studio/'+resource);},
       studio(action,payload={}){if(role!=='admin')return Promise.reject(new Error('Bancada reservada ao administrador.'));return post('/api/studio/action',{action,payload},true);},
+      async companyRead(resource='status'){if(role!=='admin')throw new Error('Projetos reservados ao administrador.');return request('/api/company/'+resource);},
+      company(action,payload={}){if(role!=='admin')return Promise.reject(new Error('Projetos reservados ao administrador.'));return request('/api/company/action',{method:'POST',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json','X-Firma-CSRF':session.csrf},body:JSON.stringify({action,payload})});},
       async backup(){if(role!=='admin')throw new Error('Backup reservado ao administrador.');return request('/api/backup');}
     };
     window.FirmaAccess=access;started=true;
     document.body.classList.toggle('visitor',role==='visitor');$('access-role').textContent=role==='admin'?'ADMIN · '+session.username:'VISITANTE';$('session-exit').textContent=role==='admin'?'Sair':'Login';
     $('session-exit').onclick=()=>{if(role==='visitor')access.login();else access.logout().catch(e=>window.FirmaUI?.toast(e.message));};
-    await loadScript('activity.js');await loadScript('ui.js');await loadScript('ai-ui.js');await loadScript('app.js');if(role==='admin')await loadScript('studio.js');$('access-gate').hidden=true;document.body.classList.remove('gated');
+    await loadScript('activity.js');await loadScript('ui.js');await loadScript('ai-ui.js');if(role==='admin')await loadScript('company-ui.js');await loadScript('scene-controls.js');await loadScript('app.js');if(role==='admin')await loadScript('studio.js');$('access-gate').hidden=true;document.body.classList.remove('gated');
   }
   async function enterAdmin(){
     session=await request('/api/session');

@@ -2,7 +2,8 @@
 // Fixed official endpoints; no caller-controlled URLs or browser-held credentials.
 const catalog={
   codex:{name:'ChatGPT / Codex',auth:'oauth',url:'https://learn.chatgpt.com/docs/app-server'},
-  gemini:{name:'Gemini',auth:'api-key',url:'https://aistudio.google.com/apikey'}
+  gemini:{name:'Gemini',auth:'api-key',url:'https://aistudio.google.com/apikey'},
+  ollama:{name:'Ollama · local',auth:'local',url:'https://docs.ollama.com/quickstart'}
 };
 const defaults={
   leadership:{provider:'codex',model:'',reason:'Liderança e orientação técnica com Codex.'},
@@ -11,7 +12,7 @@ const defaults={
   testing:{provider:'gemini',model:'gemini-3.8-flash',reason:'Revisão técnica e casos de teste propostos, sem execução automática.'},
   publishing:{provider:'gemini',model:'gemini-3.8-flash',reason:'Rascunhos de conteúdo e checklist para publicação após revisão humana.'}
 };
-const modelValid=value=>typeof value==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/.test(value);
+const modelValid=value=>typeof value==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/.test(value);
 function providerError(status){
   const error=new Error(status===401||status===403?'Credencial recusada ou acesso não permitido.':status===429?'Limite de uso atingido. Confira cotas e faturamento no provedor.':status===404?'Modelo não disponível para esta conta. Escolha outro modelo.':'Falha no provedor. Confira a conexão e tente novamente manualmente.');
   error.code=status===429?'quota':status===401||status===403?'authentication':'provider';return error;
@@ -26,11 +27,13 @@ async function jsonRequest(fetcher,url,{headers={},signal,...options}={}){
   try{return JSON.parse(data);}catch{throw Error('O provedor retornou uma resposta inválida.');}
 }
 async function listModels(provider,key,fetcher=fetch){
+  if(provider==='ollama'){const r=await jsonRequest(fetcher,'http://127.0.0.1:11434/api/tags',{signal:AbortSignal.timeout(5000)});return (r.models||[]).map(m=>({id:m.name,name:m.name})).filter(m=>modelValid(m.id));}
   if(provider==='gemini'){const r=await jsonRequest(fetcher,'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100',{signal:AbortSignal.timeout(15000),headers:{'x-goog-api-key':key}});return (r.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>({id:String(m.name).replace(/^models\//,''),name:m.displayName||m.name})).filter(m=>modelValid(m.id));}
   throw Error('Provedor inválido.');
 }
 async function generate(provider,{key,model,system,prompt,maxTokens,signal},fetcher=fetch){
   if(!modelValid(model))throw Error('Escolha um modelo válido.');
+  if(provider==='ollama')return localChat({model,system,messages:[{role:'user',text:prompt}],maxTokens,signal},fetcher);
   let r,text,usage,finish;
   if(provider==='gemini'){
     r=await jsonRequest(fetcher,'https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}}),signal});
@@ -42,6 +45,7 @@ async function generate(provider,{key,model,system,prompt,maxTokens,signal},fetc
 }
 // Genuine provider SSE: never simulate streaming from an already completed answer.
 async function generateStream(provider,{key,model,system,messages,maxTokens,signal,onDelta},fetcher=fetch){
+  if(provider==='ollama')return localChat({model,system,messages,maxTokens,signal},fetcher);
   if(provider!=='gemini')return generate(provider,{key,model,system,prompt:JSON.stringify(messages),maxTokens,signal},fetcher);
   if(!modelValid(model))throw Error('Escolha um modelo válido.');
   const response=await fetcher('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':streamGenerateContent?alt=sse',{
@@ -68,5 +72,11 @@ async function generateStream(provider,{key,model,system,messages,maxTokens,sign
   }finally{await reader.cancel().catch(()=>{});}
   if(finish!=='STOP'||!text.trim())throw Error('Resposta incompleta ou bloqueada. O texto parcial não é uma entrega concluída.');
   return {text,model,usage:{tokens}};
+}
+async function localChat({model,system,messages,maxTokens,signal},fetcher){
+  if(!modelValid(model))throw Error('Modelo local inválido.');
+  const r=await jsonRequest(fetcher,'http://127.0.0.1:11434/api/chat',{method:'POST',signal,body:JSON.stringify({model,stream:false,messages:[{role:'system',content:system},...messages.map(m=>({role:m.role,content:m.text}))],options:{num_predict:maxTokens}})});
+  if(r.done!==true||r.done_reason&&r.done_reason!=='stop'||typeof r.message?.content!=='string'||!r.message.content.trim()||r.message.content.length>120000)throw Error('Resposta local incompleta ou acima do limite.');
+  return {text:r.message.content,model:r.model||model,usage:{tokens:(Number(r.prompt_eval_count)||0)+(Number(r.eval_count)||0)}};
 }
 module.exports={catalog,defaults,modelValid,listModels,generate,generateStream};
