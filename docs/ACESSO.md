@@ -1,3 +1,5 @@
+> Atualização 0.14: a bancada remota pode ser habilitada explicitamente com HTTPS e executor Docker. Os arquivos dos projetos passaram a ficar na área persistente por padrão. Configuração e limites: [Atualização v0.14](ATUALIZACAO-V0.14.md).
+
 # Acesso e visita — Firma v0.4
 
 ## Uso local

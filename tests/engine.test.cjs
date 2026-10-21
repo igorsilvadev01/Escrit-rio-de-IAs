@@ -1,23 +1,170 @@
-const {test}=require('node:test');
-const assert=require('node:assert/strict');
-const E=require('../engine.js');
-function finish(s,id){for(let i=0;i<2000&&s.tasks.find(t=>t.id===id).status!=='review';i++)E.tick(s,1);assert.equal(s.tasks.find(t=>t.id===id).status,'review');}
-test('approval gates dependencies and the agent earns XP only on approval',()=>{const s=E.create();const [first,next]=s.tasks;assert.equal(next.status,'blocked');finish(s,first.id);assert.equal(next.status,'blocked');assert.equal(s.agents.find(a=>a.id===first.agent).xp,0);E.approve(s,first.id);assert.equal(next.status,'working');assert.equal(s.agents.find(a=>a.id===first.agent).xp,25);assert.throws(()=>E.approve(s,first.id));});
-test('one task per agent; priority takes precedence; paused agents do not progress',()=>{const s=E.create();s.tasks=[];const low=E.addTask(s,{title:'Low',description:'brief',agent:s.agents[0].id,priority:'low'});const high=E.addTask(s,{title:'High',description:'brief',agent:s.agents[0].id,priority:'high'});assert.equal(high.status,'working');assert.equal(low.status,'queued');E.tick(s,10);assert.equal(low.progress,0);E.pauseAgent(s,s.agents[0].id);const p=high.progress;E.tick(s,10);assert.equal(high.progress,p);E.pauseAgent(s,s.agents[0].id);assert.equal(high.status,'working');});
-test('revisions return work to production without unlocking a dependency',()=>{const s=E.create();const first=s.tasks[0];finish(s,first.id);assert.match(first.result,/SIMULADA/);assert.throws(()=>E.revise(s,first.id,'  '));E.revise(s,first.id,'Explique as limitações.');assert.equal(first.progress,40);assert.equal(s.tasks[1].status,'blocked');finish(s,first.id);assert.match(first.result,/Explique as limitações/);});
-test('context is snapshotted per task; export contract preserves instructions',()=>{const s=E.create();s.memory='Original context';const t=E.addTask(s,{title:'Task',description:'Brief',template:'design',agent:s.agents[1].id});s.memory='New context';assert.equal(t.context,'Original context');assert.equal(E.contract(s,t).contextSnapshot,'Original context');assert.ok(E.contract(s,t).requiresHumanReview);});
-test('legacy data migrates and completed tasks stay complete',()=>{const s=E.migrate({agents:[{id:1,name:'Atlas',role:'Leader',color:'#abcdef'}],tasks:[{id:1,title:'Old',description:'Legacy task',agent:1,progress:100}]});assert.equal(s.version,2);assert.equal(s.agents[0].id,'1');assert.equal(s.tasks[0].status,'done');assert.ok(s.tasks[0].steps.length);assert.deepEqual(E.migrate(JSON.parse(JSON.stringify(s))),s);});
-test('import rejects malformed state, duplicate identities and dependency cycles',()=>{assert.throws(()=>E.migrate({}));let s=E.create();s.tasks[0].dependency=s.tasks[1].id;assert.throws(()=>E.migrate(s),/circulares/);s=E.create();s.agents[1].id=s.agents[0].id;assert.throws(()=>E.migrate(s),/duplicados/);});
-test('automatic breaks recover energy and return to work',()=>{const s=E.create(),a=s.agents[3];a.energy=20;E.tick(s,2);assert.equal(a.rest,true);assert.equal(a.autoRest,true);for(let i=0;i<110;i++)E.tick(s,1);assert.equal(a.rest,false);assert.ok(a.energy>80);});
-test('Codex creates a four-room plan with approval gates between every phase',()=>{const s=E.create(),plan=E.meeting(s,'Organizar os estudos');assert.equal(plan.length,4);assert.deepEqual(plan.map(t=>E.taskDepartment(t)),['planning','development','testing','publishing']);for(let i=1;i<plan.length;i++)assert.equal(plan[i].dependency,plan[i-1].id);assert.equal(E.agentStatus(s,s.agents[0]).key,'meeting');E.tick(s,31);assert.notEqual(E.agentStatus(s,s.agents[0]).key,'meeting');for(let i=0;i<plan.length;i++){finish(s,plan[i].id);if(plan[i+1])assert.equal(plan[i+1].status,'blocked');E.approve(s,plan[i].id);if(plan[i+1])assert.notEqual(plan[i+1].status,'blocked');}});
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const E = require('../engine.js');
+function finish(s, id) {
+  for (let i = 0; i < 2000 && s.tasks.find((t) => t.id === id).status !== 'review'; i++)
+    E.tick(s, 1);
+  assert.equal(s.tasks.find((t) => t.id === id).status, 'review');
+}
+test('approval gates dependencies and the agent earns XP only on approval', () => {
+  const s = E.create();
+  const [first, next] = s.tasks;
+  assert.equal(next.status, 'blocked');
+  finish(s, first.id);
+  assert.equal(next.status, 'blocked');
+  assert.equal(s.agents.find((a) => a.id === first.agent).xp, 0);
+  E.approve(s, first.id);
+  assert.equal(next.status, 'working');
+  assert.equal(s.agents.find((a) => a.id === first.agent).xp, 25);
+  assert.throws(() => E.approve(s, first.id));
+});
+test('one task per agent; priority takes precedence; paused agents do not progress', () => {
+  const s = E.create();
+  s.tasks = [];
+  const low = E.addTask(s, {
+    title: 'Low',
+    description: 'brief',
+    agent: s.agents[0].id,
+    priority: 'low',
+  });
+  const high = E.addTask(s, {
+    title: 'High',
+    description: 'brief',
+    agent: s.agents[0].id,
+    priority: 'high',
+  });
+  assert.equal(high.status, 'working');
+  assert.equal(low.status, 'queued');
+  E.tick(s, 10);
+  assert.equal(low.progress, 0);
+  E.pauseAgent(s, s.agents[0].id);
+  const p = high.progress;
+  E.tick(s, 10);
+  assert.equal(high.progress, p);
+  E.pauseAgent(s, s.agents[0].id);
+  assert.equal(high.status, 'working');
+});
+test('revisions return work to production without unlocking a dependency', () => {
+  const s = E.create();
+  const first = s.tasks[0];
+  finish(s, first.id);
+  assert.match(first.result, /SIMULADA/);
+  assert.throws(() => E.revise(s, first.id, '  '));
+  E.revise(s, first.id, 'Explique as limitações.');
+  assert.equal(first.progress, 40);
+  assert.equal(s.tasks[1].status, 'blocked');
+  finish(s, first.id);
+  assert.match(first.result, /Explique as limitações/);
+});
+test('context is snapshotted per task; export contract preserves instructions', () => {
+  const s = E.create();
+  s.memory = 'Original context';
+  const t = E.addTask(s, {
+    title: 'Task',
+    description: 'Brief',
+    template: 'design',
+    agent: s.agents[1].id,
+  });
+  s.memory = 'New context';
+  assert.equal(t.context, 'Original context');
+  assert.equal(E.contract(s, t).contextSnapshot, 'Original context');
+  assert.ok(E.contract(s, t).requiresHumanReview);
+});
+test('legacy data migrates and completed tasks stay complete', () => {
+  const s = E.migrate({
+    agents: [{ id: 1, name: 'Atlas', role: 'Leader', color: '#abcdef' }],
+    tasks: [{ id: 1, title: 'Old', description: 'Legacy task', agent: 1, progress: 100 }],
+  });
+  assert.equal(s.version, 2);
+  assert.equal(s.agents[0].id, '1');
+  assert.equal(s.tasks[0].status, 'done');
+  assert.ok(s.tasks[0].steps.length);
+  assert.deepEqual(E.migrate(JSON.parse(JSON.stringify(s))), s);
+});
+test('import rejects malformed state, duplicate identities and dependency cycles', () => {
+  assert.throws(() => E.migrate({}));
+  let s = E.create();
+  s.tasks[0].dependency = s.tasks[1].id;
+  assert.throws(() => E.migrate(s), /circulares/);
+  s = E.create();
+  s.agents[1].id = s.agents[0].id;
+  assert.throws(() => E.migrate(s), /duplicados/);
+});
+test('automatic breaks recover energy and return to work', () => {
+  const s = E.create(),
+    a = s.agents[3];
+  a.energy = 20;
+  E.tick(s, 2);
+  assert.equal(a.rest, true);
+  assert.equal(a.autoRest, true);
+  for (let i = 0; i < 110; i++) E.tick(s, 1);
+  assert.equal(a.rest, false);
+  assert.ok(a.energy > 80);
+});
+test('Codex creates a four-room plan with approval gates between every phase', () => {
+  const s = E.create(),
+    plan = E.meeting(s, 'Organizar os estudos');
+  assert.equal(plan.length, 4);
+  assert.deepEqual(
+    plan.map((t) => E.taskDepartment(t)),
+    ['planning', 'development', 'testing', 'publishing'],
+  );
+  for (let i = 1; i < plan.length; i++) assert.equal(plan[i].dependency, plan[i - 1].id);
+  assert.equal(E.agentStatus(s, s.agents[0]).key, 'meeting');
+  E.tick(s, 31);
+  assert.notEqual(E.agentStatus(s, s.agents[0]).key, 'meeting');
+  for (let i = 0; i < plan.length; i++) {
+    finish(s, plan[i].id);
+    if (plan[i + 1]) assert.equal(plan[i + 1].status, 'blocked');
+    E.approve(s, plan[i].id);
+    if (plan[i + 1]) assert.notEqual(plan[i + 1].status, 'blocked');
+  }
+});
 
-test('legacy agents receive separate departments and missing specialists do not create a partial plan',()=>{const s=E.create();assert.equal(s.agents.find(a=>a.name==='Theo').department,'development');assert.equal(s.agents.find(a=>a.name==='Maya').department,'testing');assert.equal(s.agents.find(a=>a.name==='Oliver').department,'publishing');s.agents=s.agents.filter(a=>a.department!=='testing');const count=s.tasks.length;assert.throws(()=>E.meeting(s,'Fazer uma entrega'),/cada sala/);assert.equal(s.tasks.length,count);assert.throws(()=>E.addTask(s,{template:'testing',title:'Teste',description:'Validar',agent:s.agents[0].id}),/sala Testar/);});
-test('all-hands pauses every task and preserves energy, rest and progress across reload',()=>{
-  const s=E.create(),a=s.agents[0];a.rest=true;const before=s.tasks.map(t=>t.progress),energy=s.agents.map(a=>a.energy);
-  E.summonTeam(s);E.summonTeam(s);assert.equal(s.events.filter(e=>e.text.includes('convocou')).length,1);
-  assert.ok(s.agents.every(a=>E.agentStatus(s,a).key==='meeting'));E.tick(s,120);
-  assert.deepEqual(s.tasks.map(t=>t.progress),before);assert.deepEqual(s.agents.map(a=>a.energy),energy);
-  const restored=E.migrate(JSON.parse(JSON.stringify(s)));assert.equal(restored.assembly.active,true);
-  E.dismissTeam(restored);assert.equal(restored.agents[0].rest,true);assert.ok(restored.tasks.some(t=>t.status==='working'));
-  E.tick(restored,1);assert.ok(restored.tasks.some((t,i)=>t.progress>before[i]));
+test('legacy agents receive separate departments and missing specialists do not create a partial plan', () => {
+  const s = E.create();
+  assert.equal(s.agents.find((a) => a.name === 'Theo').department, 'development');
+  assert.equal(s.agents.find((a) => a.name === 'Maya').department, 'testing');
+  assert.equal(s.agents.find((a) => a.name === 'Oliver').department, 'publishing');
+  s.agents = s.agents.filter((a) => a.department !== 'testing');
+  const count = s.tasks.length;
+  assert.throws(() => E.meeting(s, 'Fazer uma entrega'), /cada sala/);
+  assert.equal(s.tasks.length, count);
+  assert.throws(
+    () =>
+      E.addTask(s, {
+        template: 'testing',
+        title: 'Teste',
+        description: 'Validar',
+        agent: s.agents[0].id,
+      }),
+    /sala Testar/,
+  );
+});
+test('all-hands pauses every task and preserves energy, rest and progress across reload', () => {
+  const s = E.create(),
+    a = s.agents[0];
+  a.rest = true;
+  const before = s.tasks.map((t) => t.progress),
+    energy = s.agents.map((a) => a.energy);
+  E.summonTeam(s);
+  E.summonTeam(s);
+  assert.equal(s.events.filter((e) => e.text.includes('convocou')).length, 1);
+  assert.ok(s.agents.every((a) => E.agentStatus(s, a).key === 'meeting'));
+  E.tick(s, 120);
+  assert.deepEqual(
+    s.tasks.map((t) => t.progress),
+    before,
+  );
+  assert.deepEqual(
+    s.agents.map((a) => a.energy),
+    energy,
+  );
+  const restored = E.migrate(JSON.parse(JSON.stringify(s)));
+  assert.equal(restored.assembly.active, true);
+  E.dismissTeam(restored);
+  assert.equal(restored.agents[0].rest, true);
+  assert.ok(restored.tasks.some((t) => t.status === 'working'));
+  E.tick(restored, 1);
+  assert.ok(restored.tasks.some((t, i) => t.progress > before[i]));
 });

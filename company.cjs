@@ -1,89 +1,965 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),os=require('node:os'),{spawn}=require('node:child_process'),E=require('./engine.js');
-const now=()=>new Date().toISOString(),id=()=>crypto.randomUUID(),hash=value=>crypto.createHash('sha256').update(value).digest('hex');
-function text(value,max=3000){if(typeof value!=='string'||value.length>max)throw Error('Texto inválido ou acima do limite.');return value.trim();}
-function atomic(file,data){fs.writeFileSync(file+'.tmp',JSON.stringify(data),{mode:0o600});fs.renameSync(file+'.tmp',file);}
-class Company{
-  constructor({dataDir,workstation,ai,getState,changed,restoreState}){
-    Object.assign(this,{dataDir,workstation,ai,getState,changed,restoreState});this.file=path.join(dataDir,'company.json');this.data=fs.existsSync(this.file)?JSON.parse(fs.readFileSync(this.file,'utf8')):{version:1,projects:{},plans:[],runs:[],events:[],settings:{social:true,reducedMotion:false,decoration:'classic'}};this.active=null;
-    for(const p of workstation.projects.list())this.meta(p.id);
-    for(const run of this.data.runs)if(['generating','checking','integrating'].includes(run.status)){run.status='interrupted';run.error='Execução interrompida. Confira as evidências e retome explicitamente.';}
-    for(const task of getState().tasks)if(task.workRunId){const run=this.data.runs.find(r=>r.id===task.workRunId);task.workStatus=run?.status||'interrupted';}this.changed();
-    if(!fs.existsSync(this.file)&&getState().memory)this.meta('firma').memory.push({id:id(),kind:'reference',text:getState().memory,source:'Contexto anterior do escritório',approved:true,time:now()});
-    ai.companyBusy=()=>!!this.active;ai.companyExecution=()=>this.active?.id;ai.admitCall=(project,kind,task)=>this.admit(project,kind,task);this.save();
-  }
-  save(){if(!this.closed)atomic(this.file,this.data);}
-  project(project='firma'){if(!this.workstation.projects.list().some(p=>p.id===project))throw Error('Projeto não encontrado.');return project;}
-  decorations(){const tasks=this.getState().tasks;return ['classic',...(tasks.some(t=>t.status==='done')?['garden']:[]),...(tasks.some(t=>t.status==='done'&&t.validation?.passed)?['wood']:[])];}
-  meta(project){return this.data.projects[project]??={objective:'',team:[],memory:[],limits:{calls:50,rounds:3,seconds:180},usage:{day:'',calls:0},checks:[]};}
-  audit(project,type,message,extra={}){const entry={id:id(),projectId:project,type,message:this.workstation.clean(message).slice(0,1000),time:now(),...extra};this.data.events.unshift(entry);this.data.events=this.data.events.slice(0,1500);this.save();return entry;}
-  context(project){this.project(project);const p=this.meta(project);return ['Objetivo: '+p.objective,...p.memory.filter(m=>m.approved).map(m=>'['+m.kind+'] '+m.text+' (origem: '+m.source+')')].join('\n').slice(0,12000);}
-  admit(project='firma',kind='chat',taskId=''){
-    this.project(project);const p=this.meta(project),day=now().slice(0,10);if(p.usage.day!==day)p.usage={day,calls:0};if(p.usage.calls>=p.limits.calls)throw Error('Limite diário de chamadas deste projeto atingido.');p.usage.calls++;this.audit(project,'call','Chamada autorizada: '+kind,{taskId});
-  }
-  state(project='firma'){
-    this.project(project);const state=this.getState(),tasks=state.tasks.filter(t=>(t.projectId||'firma')===project),runs=this.data.runs.filter(r=>r.projectId===project),approved=tasks.filter(t=>t.status==='done'),validated=runs.filter(r=>r.status==='integrated'&&r.evidence?.length&&r.evidence.every(e=>e.passed));
-    return {projectId:project,projects:this.workstation.projects.list().map(p=>({...p,objective:this.meta(p.id).objective,completed:state.tasks.filter(t=>t.projectId===p.id&&t.status==='done').length})),meta:this.meta(project),plans:this.data.plans.filter(p=>p.projectId===project),runs:runs.map(({files,base,checkpoints,integrationCheckpoint,...r})=>({...r,checkpoints:checkpoints.map(({files,...c})=>c),changedFiles:Object.keys(files||{}).filter(name=>files[name]!==base?.[name])})),events:this.data.events.filter(e=>e.projectId===project).slice(0,100),settings:this.data.settings,unlockedDecorations:this.decorations(),summary:{open:tasks.filter(t=>t.status!=='done').length,review:tasks.filter(t=>t.status==='review').length,done:approved.length,validated:validated.length,onboarding:[{name:'Definir o objetivo',done:!!this.meta(project).objective},{name:'Aprovar uma decisão',done:this.meta(project).memory.some(m=>m.approved)},{name:'Iniciar um plano',done:this.data.plans.some(p=>p.projectId===project&&p.started)},{name:'Aprovar uma entrega validada',done:approved.some(t=>t.validation?.passed)}],experience:Object.entries(E.departments).map(([role,d])=>({role,name:d.name,approved:approved.filter(t=>E.taskDepartment(t)===role&&t.validation?.passed).length})),milestones:[...(approved.length?[{id:'first-delivery',name:'Primeira entrega aprovada'}]:[]),...(validated.length?[{id:'first-validated',name:'Primeira mudança integrada e validada'}]:[]),...(approved.length>=5?[{id:'five-deliveries',name:'Cinco entregas aprovadas'}]:[])]},diagnostics:{version:require('./package.json').version,lastError:this.data.events.find(e=>e.type==='error'&&e.projectId===project)?.message||'',tools:require('./company-tools.cjs').contracts,node:process.version,platform:process.platform,memoryMB:Math.round(os.totalmem()/1024/1024),storage:'JSON atômico · arquivos locais',active:this.active?.id||null,credentialsIncludedInBackup:false,capabilities:{planning:true,isolatedFiles:true,syntax:true,nodeTests:true,nodeScripts:true,networkTools:false,publish:false}}};
-  }
-  configure(p){const project=this.project(p.projectId),m=this.meta(project);if(p.objective!==undefined)m.objective=text(p.objective,1500);if(p.team!==undefined){if(!Array.isArray(p.team)||p.team.some(a=>!this.getState().agents.some(x=>x.id===a)))throw Error('Equipe inválida.');m.team=[...new Set(p.team)];}
-    if(p.limits){const {calls,rounds,seconds}=p.limits;if(!Number.isInteger(calls)||calls<1||calls>100||!Number.isInteger(rounds)||rounds<1||rounds>5||!Number.isInteger(seconds)||seconds<15||seconds>600)throw Error('Limites inválidos: chamadas 1–100, rodadas 1–5 e tempo 15–600 s.');m.limits={calls,rounds,seconds};}
-    this.audit(project,'configuration','Objetivo, equipe ou limites atualizados.');return {};
-  }
-  memory(p){const project=this.project(p.projectId),m=this.meta(project);if(p.operation==='remove'){m.memory=m.memory.filter(x=>x.id!==p.id);}else if(p.operation==='approve'){const item=m.memory.find(x=>x.id===p.id);if(!item)throw Error('Registro não encontrado.');item.approved=true;item.approvedAt=now();}else{if(!['requirement','decision','question','reference'].includes(p.kind))throw Error('Categoria inválida.');const value={id:p.id||id(),kind:p.kind,text:text(p.text,2500),source:text(p.source||'Administrador',300),approved:p.approved===true,time:now()};if(!value.text)throw Error('Preencha o registro.');const old=m.memory.findIndex(x=>x.id===p.id);if(old>=0)m.memory[old]=value;else{if(m.memory.length>=150)throw Error('Limite de 150 registros por projeto.');m.memory.push(value);}}
-    this.audit(project,'memory','Memória do projeto atualizada.');return {};
-  }
-  plan(p){const project=this.project(p.projectId),state=this.getState();if(p.operation==='start'){const plan=this.data.plans.find(x=>x.id===p.id&&x.projectId===project);if(!plan||plan.started)throw Error('Plano inexistente ou já iniciado.');if(state.tasks.length+plan.steps.length>500)throw Error('Limite de tarefas atingido.');const tasks=[];for(const step of plan.steps){const task=E.addTask(state,{...step,projectId:project,context:this.context(project),description:step.description||plan.goal,dependency:step.dependsOn?tasks.find(t=>t.stepId===step.dependsOn)?.taskId||'':''});tasks.push({stepId:step.id,taskId:task.id});}plan.started=now();plan.tasks=tasks;this.changed();this.audit(project,'plan','Plano iniciado: '+plan.goal,{planId:plan.id});return {tasks};}
-    const goal=text(p.goal,1500);if(!goal)throw Error('Descreva o objetivo.');let steps=p.steps;if(!steps){steps=Object.entries(E.departments).map(([role,d],i)=>({id:String(i+1),title:(d.name+': '+goal).slice(0,100),template:d.template,agent:E.recommend(state,d.template)?.id,description:goal,output:E.templates[d.template].output,criteria:E.templates[d.template].criteria,dependsOn:i?String(i):''}));}
-    if(!Array.isArray(steps)||!steps.length||steps.length>20)throw Error('Use de 1 a 20 etapas.');const seen=new Set();steps=steps.map(step=>{const a=state.agents.find(a=>a.id===step.agent),template=E.templates[step.template];if(!a||!template||a.department!==template.department)throw Error('Responsável incompatível com o tipo da etapa.');const stepId=text(step.id,80);if(!stepId||seen.has(stepId)||step.dependsOn&&!seen.has(step.dependsOn))throw Error('Dependências devem apontar para uma etapa anterior.');seen.add(stepId);return {id:stepId,title:text(step.title,100),template:step.template,agent:a.id,description:text(step.description||goal),output:text(step.output||template.output,1500),criteria:text(step.criteria||template.criteria,2000),dependsOn:step.dependsOn||''};});
-    const existing=this.data.plans.find(x=>x.id===p.id&&x.projectId===project);if(existing?.started)throw Error('Este plano já foi iniciado.');const plan={id:existing?.id||id(),projectId:project,goal,steps,time:now(),started:null};if(existing)Object.assign(existing,plan);else this.data.plans.push(plan);this.audit(project,'plan','Plano preparado para revisão: '+goal,{planId:plan.id});return {plan};
-  }
-  snapshot(project){this.project(project);const files={};let bytes=0;for(const file of this.workstation.files(project)){const read=this.workstation.read(file.path,project);if(!read.editable)continue;bytes+=Buffer.byteLength(read.text);if(bytes>12_000_000)throw Error('Projeto acima de 12 MB de código permitido.');files[file.path]=read.text;}return files;}
-  createRun(p){const project=this.project(p.projectId);if(project==='firma')throw Error('Use um projeto próprio para executar mudanças delegadas.');const task=this.getState().tasks.find(t=>t.id===p.taskId&&t.projectId===project);if(!task||task.status==='done')throw Error('Escolha uma tarefa aberta deste projeto.');if(this.active&&this.active.id===task.workRunId)throw Error('Aguarde ou cancele a cópia atual desta tarefa.');if(['running','pending','ready'].includes(task.execution?.status))throw Error('Conclua ou cancele a ordem atual desta tarefa.');const mode=p.mode||'assisted';if(!['manual','assisted','delegated'].includes(mode))throw Error('Modo inválido.');const base=this.snapshot(project),limits={...this.meta(project).limits};const run={id:id(),projectId:project,taskId:task.id,mode,status:'prepared',round:0,calls:0,limits,input:JSON.parse(JSON.stringify(E.contract(this.getState(),task))),projectContext:this.context(project),base,files:{...base},checkpoints:[],evidence:[],createdAt:now(),error:'',summary:'',events:[]};task.workRunId=run.id;task.workStatus='prepared';task.progress=0;task.status='queued';task.result='';task.artifacts=[];task.validation=null;this.changed();this.data.runs.push(run);this.data.runs=this.data.runs.slice(-120);this.audit(project,'run','Cópia de trabalho preparada.',{runId:run.id,taskId:task.id});return {runId:run.id};}
-  getRun(runId){const run=this.data.runs.find(r=>r.id===runId);if(!run)throw Error('Execução não encontrada.');return run;}
-  inspect(runId){const r=this.getRun(runId);return {...r,files:Object.keys(r.files).filter(name=>r.files[name]!==r.base[name]).map(name=>({path:name,before:r.base[name]||'',after:r.files[name]}))};}
-  stage(p){const run=this.getRun(p.runId);if(this.active?.id===run.id||run.status==='integrated')throw Error('Esta execução não pode ser alterada agora.');this.workstation.projects.validate(p.path);text(p.content,300000);if(Buffer.byteLength(p.content)>300000)throw Error('Arquivo acima de 300 KB.');if(!Object.hasOwn(run.files,p.path)&&Object.keys(run.files).length>=600||Object.entries(run.files).reduce((n,[name,value])=>n+(name===p.path?0:Buffer.byteLength(value)),Buffer.byteLength(p.content))>12000000)throw Error('Limite da cópia atingido: 600 arquivos ou 12 MB.');run.checkpoints.push({id:id(),time:now(),files:{...run.files},label:'Antes de editar '+p.path});run.checkpoints=run.checkpoints.slice(-5);run.files[p.path]=p.content;run.evidence=[];run.status='staged';this.audit(run.projectId,'stage','Alteração preparada na cópia: '+p.path,{runId:run.id});return {};}
-  checkpoint(p){const run=this.getRun(p.runId);if(this.active?.id===run.id||run.status==='integrated')throw Error('Execução indisponível.');if(p.checkpointId){const checkpoint=run.checkpoints.find(c=>c.id===p.checkpointId);if(!checkpoint)throw Error('Checkpoint não encontrado.');run.files={...checkpoint.files};run.evidence=[];run.status='staged';}else{run.checkpoints.push({id:id(),time:now(),label:text(p.label||'Checkpoint',100),files:{...run.files}});run.checkpoints=run.checkpoints.slice(-5);}this.audit(run.projectId,'checkpoint','Checkpoint atualizado.',{runId:run.id});return {};}
-  checks(p){const project=this.project(p.projectId);if(!Array.isArray(p.checks)||p.checks.length>12)throw Error('Use até 12 verificações.');this.meta(project).checks=p.checks.map(check=>{if(!['syntax','node-test','node-script'].includes(check.kind))throw Error('Tipo de verificação inválido.');if(check.kind!=='syntax')this.workstation.projects.validate(check.file);return {id:check.id||id(),kind:check.kind,file:check.file||'',name:text(check.name||check.kind,80)};});this.audit(project,'checks','Verificações do projeto configuradas.');return {};}
-  async command(dir,args,signal,timeout){return new Promise(resolve=>{let output='',finished=false;const env={};for(const key of ['PATH','Path','SYSTEMROOT','SystemRoot','WINDIR','TEMP','TMP','PATHEXT'])if(process.env[key])env[key]=process.env[key];env.NO_COLOR='1';const permissionArgs=['--permission','--allow-fs-read='+dir,'--allow-fs-write='+dir,...(args[0]==='--test'?['--experimental-test-isolation=none']:[]),...args];const child=spawn(process.execPath,permissionArgs,{cwd:dir,env,windowsHide:true,shell:false,stdio:['ignore','pipe','pipe'],signal});const stop=()=>{child.kill();finish(false,'Tempo limite atingido.');};const timer=setTimeout(stop,timeout);const finish=(passed,message='')=>{if(finished)return;finished=true;clearTimeout(timer);resolve({passed,output:this.workstation.clean((output+'\n'+message).slice(-50000)),time:now(),command:'node '+args.join(' ')});};child.stdout.on('data',d=>{output+=d.toString();if(output.length>100000)stop();});child.stderr.on('data',d=>{output+=d.toString();if(output.length>100000)stop();});child.on('error',()=>finish(false,signal.aborted?'Cancelado.':'Não foi possível iniciar o comando.'));child.on('close',code=>finish(code===0,'Código de saída: '+code));});}
-  async validate(run,controller){
-    const dir=path.join(this.dataDir,'executions',run.id);fs.mkdirSync(dir,{recursive:true});if(fs.lstatSync(dir).isSymbolicLink())throw Error('Pasta vinculada não permitida na execução.');for(const [name,content] of Object.entries(run.files)){this.workstation.projects.validate(name);const file=path.resolve(dir,name);if(!file.startsWith(dir+path.sep))throw Error('Caminho inválido na cópia.');let parent=dir;for(const part of name.split('/').slice(0,-1)){parent=path.join(parent,part);if(fs.existsSync(parent)&&fs.lstatSync(parent).isSymbolicLink())throw Error('Link não permitido na cópia.');fs.mkdirSync(parent,{recursive:true});}if(fs.existsSync(file)&&fs.lstatSync(file).isSymbolicLink())throw Error('Link não permitido na cópia.');fs.writeFileSync(file,content);}
-    const configured=run.authorizedChecks||this.meta(run.projectId).checks,checks=configured.length?configured:[{kind:'syntax',name:'Sintaxe JavaScript'}];run.status='checking';run.evidence=[];this.save();
-    for(const check of checks){if(controller.signal.aborted)throw Error('Execução cancelada.');if(check.kind==='syntax'){const changed=Object.keys(run.files).filter(n=>/\.(?:js|cjs|mjs)$/.test(n));for(const name of changed){const evidence=await this.command(dir,['--check',name],controller.signal,Math.min(run.limits.seconds*1000,90000));run.evidence.push({...evidence,name:'Sintaxe · '+name});this.save();}}else{if(!Object.hasOwn(run.files,check.file))throw Error('Arquivo de verificação não está na cópia: '+check.file);run.evidence.push({...await this.command(dir,check.kind==='node-test'?['--test',check.file]:[check.file],controller.signal,Math.min(run.limits.seconds*1000,90000)),name:check.name});this.save();}}
-    for(const [name,content] of Object.entries(run.files)){let unchanged=false;try{const file=path.resolve(dir,name),stat=fs.lstatSync(file);unchanged=!stat.isSymbolicLink()&&stat.nlink===1&&stat.size<=300000&&fs.readFileSync(file,'utf8')===content;}catch{}if(!unchanged)run.evidence.push({name:'Integridade · '+name,passed:false,output:'Uma verificação alterou ou removeu o código avaliado. Confira a cópia antes de continuar.',time:now(),command:'comparação de conteúdo'});}if(controller.signal.aborted)throw Error('Execução cancelada.');run.status=run.evidence.some(e=>!e.passed)?'validation_failed':'review';if(!run.evidence.length)run.summary+=' Nenhuma verificação executável disponível; revise manualmente.';this.audit(run.projectId,'validation',run.status==='review'?'Cópia pronta para revisão.':'Uma verificação falhou.',{runId:run.id,taskId:run.taskId});
-  }
-  start(p){const run=this.getRun(p.runId);if(p.confirm!==true)throw Error('Autorize o escopo desta execução.');if(this.active||this.ai.active||this.ai.activeChat||this.ai.armed.size)throw Error('Aguarde a execução atual.');if(['integrated','generating','checking'].includes(run.status))throw Error('Estado inválido.');if(!E.officeOpen(this.getState()))throw Error('Abra o escritório antes de executar.');if(run.mode==='manual'&&p.operation!=='check')throw Error('Modo manual: prepare os arquivos ou execute verificações.');if(p.operation!=='check'&&run.calls>=run.limits.rounds)throw Error('Limite de rodadas atingido. Prepare uma nova execução.');
-    const task=this.getState().tasks.find(t=>t.id===run.taskId);if(!task||task.workRunId!==run.id)throw Error('Esta tarefa tem outra execução.');if(p.operation!=='check'&&task.dependency&&!this.getState().tasks.some(t=>t.id===task.dependency&&t.status==='done'))throw Error('Aprove a etapa anterior antes de executar esta tarefa.');task.workStatus='running';run.authorizedChecks=JSON.parse(JSON.stringify(this.meta(run.projectId).checks));run.startedAt=now();this.changed();const controller=new AbortController();this.active={id:run.id,controller};run.error='';run.status=p.operation==='check'?'checking':'generating';this.save();const timer=setTimeout(()=>controller.abort(),run.limits.seconds*1000);
-    this.execute(run,p.operation==='check',controller).catch(error=>{run.status=controller.signal.aborted?'cancelled':'interrupted';run.error=this.ai.redact(error.message);this.audit(run.projectId,'error',run.error,{runId:run.id});}).finally(()=>{clearTimeout(timer);run.finishedAt=now();const task=this.getState().tasks.find(t=>t.id===run.taskId);if(task?.workRunId===run.id)task.workStatus=run.status;this.active=null;this.save();if(!this.closed)this.changed();});return {runId:run.id};
-  }
-  async execute(run,checkOnly,controller){
-    const task=this.getState().tasks.find(t=>t.id===run.taskId);if(!task)throw Error('Tarefa removida.');
-    if(checkOnly){await this.validate(run,controller);return;}
-    do{if(controller.signal.aborted)throw Error('Cancelado.');run.status='generating';run.round++;this.save();const context=JSON.stringify({objective:run.input?.objective||task.title,briefing:run.input?.instructions||task.description,acceptance:run.input?.acceptanceCriteria||task.criteria,project:run.projectContext??this.context(run.projectId),previousApproved:task.dependency?this.getState().tasks.find(t=>t.id===task.dependency)?.result||'':'',files:run.files,previousChecks:run.evidence});if(context.length>45000)throw Error('Contexto acima de 45 mil caracteres. Reduza os arquivos ou divida a tarefa.');
-      const role=E.taskDepartment(task),pending=this.ai.chat({role,projectId:run.projectId,executionId:run.id,identity:'Produza somente JSON com {"summary":"...","files":[{"path":"src/app.js","content":"conteúdo completo"}]}. Faça mudanças somente nos arquivos de código deste projeto. Não use shell, não publique e não afirme executar ferramentas. Uma cópia local e um validador aplicam sua proposta.',messages:[{role:'user',text:context}],onUpdate:()=>{}});run.calls++;this.save();const result=await pending;if(controller.signal.aborted)throw Error('Cancelado.');
-      let value;try{value=JSON.parse(result.text.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));}catch{throw Error('A IA não retornou o contrato JSON esperado. A resposta não alterou arquivos.');}if(!Array.isArray(value.files)||value.files.length>20)throw Error('Proposta deve conter até 20 arquivos.');const proposed={...run.files};for(const file of value.files){require('./company-tools.cjs').validateProposal(role,file,this.workstation.projects);proposed[file.path]=file.content;}if(Object.keys(proposed).length>600||JSON.stringify(proposed).length>12_000_000)throw Error('Proposta acima do limite.');run.checkpoints.push({id:id(),time:now(),label:'Antes da rodada '+run.round,files:{...run.files}});run.checkpoints=run.checkpoints.slice(-5);run.files=proposed;run.summary=this.workstation.clean(String(value.summary||'Proposta recebida.')).slice(0,3000);run.provider=this.ai.settings.roles[role].provider;run.model=result.model||this.ai.settings.roles[role].model;run.tokens=(run.tokens||0)+(result.usage?.tokens||0);this.audit(run.projectId,'proposal','Rodada '+run.round+' recebida.',{runId:run.id});
-      if(run.mode!=='delegated'){run.status='review';break;}await this.validate(run,controller);
-    }while(run.status==='validation_failed'&&run.calls<run.limits.rounds);
-  }
-  integrate(p){const run=this.getRun(p.runId);if(p.confirm!==true)throw Error('Confirme a integração da cópia.');if(run.status!=='review'||this.active?.id===run.id)throw Error('A execução precisa estar em revisão.');const linked=this.getState().tasks.find(t=>t.id===run.taskId);if(!linked||linked.workRunId!==run.id)throw Error('Esta tarefa tem outra execução.');if(linked.dependency&&!this.getState().tasks.some(t=>t.id===linked.dependency&&t.status==='done'))throw Error('Aprove a etapa anterior antes de integrar.');const changed=Object.keys(run.files).filter(name=>run.files[name]!==run.base[name]);for(const name of changed){let disk;try{disk=this.workstation.read(name,run.projectId);}catch{if(Object.hasOwn(run.base,name))throw Error('Arquivo do projeto foi removido: '+name);}if(disk&&(!disk.editable||disk.text!==run.base[name]))throw Error('Conflito no projeto principal: '+name);}
-    const before={...this.snapshot(run.projectId)},written=[];
-    run.integrationCheckpoint={id:id(),files:before,time:now()};run.status='integrating';this.save();
-    try{
-      for(const name of changed){const old=Object.hasOwn(before,name)?this.workstation.read(name,run.projectId):null;written.push(name);this.workstation.projects.write({project:run.projectId,path:name,text:run.files[name],hash:old?.hash||'',confirm:true});}
-    }catch(error){
-      const failures=[];
-      for(const name of written.reverse())try{
-        const target=this.workstation.projects.target(name,run.projectId,true);
-        if(Object.hasOwn(before,name))fs.writeFileSync(target,before[name]);
-        else if(fs.existsSync(target)){const archive=path.join(this.dataDir,'integration-rollback',run.id,name);fs.mkdirSync(path.dirname(archive),{recursive:true});fs.renameSync(target,archive);}
-      }catch(rollbackError){failures.push(name);}
-      run.status='interrupted';run.error=failures.length?'Integração interrompida; confira os arquivos: '+failures.join(', '):'Integração revertida. O checkpoint anterior foi preservado: '+error.message;this.save();throw Error(run.error);
-    }
-    run.status='integrated';run.completedAt=now();
-    const task=this.getState().tasks.find(t=>t.id===run.taskId);
-    if(task){task.workStatus='integrated';if(task.execution){task.execution.status='completed';task.execution.error='';}task.artifacts=changed;task.validation={runId:run.id,passed:run.evidence.length>0&&run.evidence.every(e=>e.passed)};task.result='# '+task.title+'\n\n'+run.summary+'\n\nArquivos: '+changed.join(', ')+'\n\nVerificações: '+run.evidence.map(e=>e.name+': '+(e.passed?'passou':'falhou')).join('; ');task.status='review';task.progress=100;}
-    this.changed();this.audit(run.projectId,'integrated','Mudanças integradas após revisão.',{runId:run.id,taskId:run.taskId});return {};
-  }
-  async action(action,p={}){if(!p||typeof p!=='object'||Array.isArray(p))throw Error('Dados inválidos.');switch(action){case 'backup.export':return require('./company-backup.cjs').exportCompany(this);case 'backup.inspect':return require('./company-backup.cjs').inspectCompany(this,p.backup);case 'backup.restore':return require('./company-backup.cjs').restoreCompany(this,p.backup,p.confirm);case 'project.configure':return this.configure(p);case 'memory':return this.memory(p);case 'plan':return this.plan(p);case 'run.create':return this.createRun(p);case 'run.stage':return this.stage(p);case 'run.checkpoint':return this.checkpoint(p);case 'run.start':return this.start(p);case 'run.integrate':return this.integrate(p);case 'run.cancel':{if(!this.active||this.active.id!==p.runId)throw Error('Execução não está ativa.');this.active.controller.abort();if(this.ai.activeChat)this.ai.activeChat.controller.abort();return {};}case 'checks.configure':return this.checks(p);case 'settings':if(!this.decorations().includes(p.decoration||'classic'))throw Error('Esta decoração aguarda o marco indicado.');this.data.settings={...this.data.settings,social:p.social!==false,reducedMotion:!!p.reducedMotion,decoration:['classic','garden','wood'].includes(p.decoration)?p.decoration:'classic'};this.getState().preferences={...this.data.settings};this.changed();this.save();return {};default:throw Error('Ação do projeto desconhecida.');}}
-  close(){if(this.active){const run=this.getRun(this.active.id);run.status='interrupted';run.error='Servidor encerrado. Retome explicitamente após conferir os arquivos.';this.active.controller.abort();this.save();}this.closed=true;}
+const fs = require('node:fs'),
+  path = require('node:path'),
+  crypto = require('node:crypto'),
+  os = require('node:os'),
+  E = require('./engine.js');
+const { atomicJSON, atomicWrite } = require('./persistence.cjs');
+const { validateCheck } = require('./project-checks.cjs');
+const { ExecutionRunner } = require('./execution-runner.cjs');
+const { buildContext, replaceExactly } = require('./execution-context.cjs');
+const { GitService } = require('./git-service.cjs');
+const now = () => new Date().toISOString(),
+  id = () => crypto.randomUUID();
+function text(value, max = 3000) {
+  if (typeof value !== 'string' || value.length > max)
+    throw Error('Texto inválido ou acima do limite.');
+  return value.trim();
 }
-module.exports={Company};
+function atomic(file, data) {
+  atomicJSON(file, data);
+}
+class Company {
+  constructor({ dataDir, workstation, ai, getState, changed, restoreState }) {
+    Object.assign(this, { dataDir, workstation, ai, getState, changed, restoreState });
+    this.file = path.join(dataDir, 'company.json');
+    this.data = fs.existsSync(this.file)
+      ? JSON.parse(fs.readFileSync(this.file, 'utf8'))
+      : {
+          version: 1,
+          projects: {},
+          plans: [],
+          runs: [],
+          events: [],
+          settings: { social: true, reducedMotion: false, decoration: 'classic' },
+        };
+    this.active = null;
+    this.runner = workstation.runner || new ExecutionRunner();
+    this.git = new GitService(workstation.projects, dataDir);
+    for (const p of workstation.projects.list()) this.meta(p.id);
+    for (const run of this.data.runs)
+      if (['generating', 'checking', 'integrating'].includes(run.status)) {
+        run.status = 'interrupted';
+        run.error = 'Execução interrompida. Confira as evidências e retome explicitamente.';
+      }
+    for (const task of getState().tasks)
+      if (task.workRunId) {
+        const run = this.data.runs.find((r) => r.id === task.workRunId);
+        task.workStatus = run?.status || 'interrupted';
+      }
+    this.changed();
+    if (!fs.existsSync(this.file) && getState().memory)
+      this.meta('firma').memory.push({
+        id: id(),
+        kind: 'reference',
+        text: getState().memory,
+        source: 'Contexto anterior do escritório',
+        approved: true,
+        time: now(),
+      });
+    ai.companyBusy = () => !!this.active || !!workstation.commandController;
+    ai.companyExecution = () => this.active?.id;
+    ai.admitCall = (project, kind, task) => this.admit(project, kind, task);
+    this.save();
+  }
+  save() {
+    if (!this.closed) atomic(this.file, this.data);
+  }
+  project(project = 'firma') {
+    if (!this.workstation.projects.list().some((p) => p.id === project))
+      throw Error('Projeto não encontrado.');
+    return project;
+  }
+  decorations() {
+    const tasks = this.getState().tasks;
+    return [
+      'classic',
+      ...(tasks.some((t) => t.status === 'done') ? ['garden'] : []),
+      ...(tasks.some((t) => t.status === 'done' && t.validation?.passed) ? ['wood'] : []),
+    ];
+  }
+  meta(project) {
+    return (this.data.projects[project] ??= {
+      objective: '',
+      team: [],
+      memory: [],
+      limits: { calls: 50, rounds: 3, seconds: 180 },
+      usage: { day: '', calls: 0 },
+      checks: [],
+    });
+  }
+  audit(project, type, message, extra = {}) {
+    const entry = {
+      id: id(),
+      projectId: project,
+      type,
+      message: this.workstation.clean(message).slice(0, 1000),
+      time: now(),
+      ...extra,
+    };
+    this.data.events.unshift(entry);
+    this.data.events = this.data.events.slice(0, 1500);
+    this.save();
+    return entry;
+  }
+  context(project) {
+    this.project(project);
+    const p = this.meta(project);
+    return [
+      'Objetivo: ' + p.objective,
+      ...p.memory
+        .filter((m) => m.approved)
+        .map((m) => '[' + m.kind + '] ' + m.text + ' (origem: ' + m.source + ')'),
+    ]
+      .join('\n')
+      .slice(0, 12000);
+  }
+  admit(project = 'firma', kind = 'chat', taskId = '') {
+    this.project(project);
+    const p = this.meta(project),
+      day = now().slice(0, 10);
+    if (p.usage.day !== day) p.usage = { day, calls: 0 };
+    if (p.usage.calls >= p.limits.calls)
+      throw Error('Limite diário de chamadas deste projeto atingido.');
+    p.usage.calls++;
+    this.audit(project, 'call', 'Chamada autorizada: ' + kind, { taskId });
+  }
+  state(project = 'firma') {
+    this.project(project);
+    const state = this.getState(),
+      tasks = state.tasks.filter((t) => (t.projectId || 'firma') === project),
+      runs = this.data.runs.filter((r) => r.projectId === project),
+      approved = tasks.filter((t) => t.status === 'done'),
+      validated = runs.filter(
+        (r) => r.status === 'integrated' && r.evidence?.length && r.evidence.every((e) => e.passed),
+      );
+    return {
+      projectId: project,
+      projects: this.workstation.projects.list().map((p) => ({
+        ...p,
+        objective: this.meta(p.id).objective,
+        completed: state.tasks.filter((t) => t.projectId === p.id && t.status === 'done').length,
+      })),
+      meta: this.meta(project),
+      plans: this.data.plans.filter((p) => p.projectId === project),
+      runs: runs.map(({ files, base, checkpoints, integrationCheckpoint, ...r }) => ({
+        ...r,
+        checkpoints: checkpoints.map(({ files, ...c }) => c),
+        changedFiles: Object.keys(files || {}).filter((name) => files[name] !== base?.[name]),
+      })),
+      events: this.data.events.filter((e) => e.projectId === project).slice(0, 100),
+      settings: this.data.settings,
+      unlockedDecorations: this.decorations(),
+      summary: {
+        open: tasks.filter((t) => t.status !== 'done').length,
+        review: tasks.filter((t) => t.status === 'review').length,
+        done: approved.length,
+        validated: validated.length,
+        onboarding: [
+          { name: 'Definir o objetivo', done: !!this.meta(project).objective },
+          { name: 'Aprovar uma decisão', done: this.meta(project).memory.some((m) => m.approved) },
+          {
+            name: 'Iniciar um plano',
+            done: this.data.plans.some((p) => p.projectId === project && p.started),
+          },
+          {
+            name: 'Aprovar uma entrega validada',
+            done: approved.some((t) => t.validation?.passed),
+          },
+        ],
+        experience: Object.entries(E.departments).map(([role, d]) => ({
+          role,
+          name: d.name,
+          approved: approved.filter((t) => E.taskDepartment(t) === role && t.validation?.passed)
+            .length,
+        })),
+        milestones: [
+          ...(approved.length ? [{ id: 'first-delivery', name: 'Primeira entrega aprovada' }] : []),
+          ...(validated.length
+            ? [{ id: 'first-validated', name: 'Primeira mudança integrada e validada' }]
+            : []),
+          ...(approved.length >= 5
+            ? [{ id: 'five-deliveries', name: 'Cinco entregas aprovadas' }]
+            : []),
+        ],
+      },
+      diagnostics: {
+        version: require('./package.json').version,
+        lastError:
+          this.data.events.find((e) => e.type === 'error' && e.projectId === project)?.message ||
+          '',
+        tools: require('./company-tools.cjs').contracts,
+        node: process.version,
+        platform: process.platform,
+        memoryMB: Math.round(os.totalmem() / 1024 / 1024),
+        storage: 'JSON atômico · arquivos locais',
+        executor: this.runner.status(),
+        backup: this.backups?.status() || null,
+        active: this.active?.id || null,
+        credentialsIncludedInBackup: false,
+        capabilities: {
+          planning: true,
+          isolatedFiles: true,
+          syntax: true,
+          nodeTests: true,
+          nodeScripts: true,
+          npm: this.runner.mode === 'docker',
+          networkTools: false,
+          publish: false,
+        },
+      },
+    };
+  }
+  configure(p) {
+    const project = this.project(p.projectId),
+      m = this.meta(project);
+    if (p.objective !== undefined) m.objective = text(p.objective, 1500);
+    if (p.team !== undefined) {
+      if (
+        !Array.isArray(p.team) ||
+        p.team.some((a) => !this.getState().agents.some((x) => x.id === a))
+      )
+        throw Error('Equipe inválida.');
+      m.team = [...new Set(p.team)];
+    }
+    if (p.limits) {
+      const { calls, rounds, seconds } = p.limits;
+      if (
+        !Number.isInteger(calls) ||
+        calls < 1 ||
+        calls > 100 ||
+        !Number.isInteger(rounds) ||
+        rounds < 1 ||
+        rounds > 5 ||
+        !Number.isInteger(seconds) ||
+        seconds < 15 ||
+        seconds > 600
+      )
+        throw Error('Limites inválidos: chamadas 1–100, rodadas 1–5 e tempo 15–600 s.');
+      m.limits = { calls, rounds, seconds };
+    }
+    this.audit(project, 'configuration', 'Objetivo, equipe ou limites atualizados.');
+    return {};
+  }
+  memory(p) {
+    const project = this.project(p.projectId),
+      m = this.meta(project);
+    if (p.operation === 'remove') {
+      m.memory = m.memory.filter((x) => x.id !== p.id);
+    } else if (p.operation === 'approve') {
+      const item = m.memory.find((x) => x.id === p.id);
+      if (!item) throw Error('Registro não encontrado.');
+      item.approved = true;
+      item.approvedAt = now();
+    } else {
+      if (!['requirement', 'decision', 'question', 'reference'].includes(p.kind))
+        throw Error('Categoria inválida.');
+      const value = {
+        id: p.id || id(),
+        kind: p.kind,
+        text: text(p.text, 2500),
+        source: text(p.source || 'Administrador', 300),
+        approved: p.approved === true,
+        time: now(),
+      };
+      if (!value.text) throw Error('Preencha o registro.');
+      const old = m.memory.findIndex((x) => x.id === p.id);
+      if (old >= 0) m.memory[old] = value;
+      else {
+        if (m.memory.length >= 150) throw Error('Limite de 150 registros por projeto.');
+        m.memory.push(value);
+      }
+    }
+    this.audit(project, 'memory', 'Memória do projeto atualizada.');
+    return {};
+  }
+  plan(p) {
+    const project = this.project(p.projectId),
+      state = this.getState();
+    if (p.operation === 'start') {
+      const plan = this.data.plans.find((x) => x.id === p.id && x.projectId === project);
+      if (!plan || plan.started) throw Error('Plano inexistente ou já iniciado.');
+      if (state.tasks.length + plan.steps.length > 500) throw Error('Limite de tarefas atingido.');
+      const tasks = [];
+      for (const step of plan.steps) {
+        const task = E.addTask(state, {
+          ...step,
+          projectId: project,
+          context: this.context(project),
+          description: step.description || plan.goal,
+          dependency: step.dependsOn
+            ? tasks.find((t) => t.stepId === step.dependsOn)?.taskId || ''
+            : '',
+        });
+        tasks.push({ stepId: step.id, taskId: task.id });
+      }
+      plan.started = now();
+      plan.tasks = tasks;
+      this.changed();
+      this.audit(project, 'plan', 'Plano iniciado: ' + plan.goal, { planId: plan.id });
+      return { tasks };
+    }
+    const goal = text(p.goal, 1500);
+    if (!goal) throw Error('Descreva o objetivo.');
+    let steps = p.steps;
+    if (!steps) {
+      steps = Object.entries(E.departments).map(([role, d], i) => ({
+        id: String(i + 1),
+        title: (d.name + ': ' + goal).slice(0, 100),
+        template: d.template,
+        agent: E.recommend(state, d.template)?.id,
+        description: goal,
+        output: E.templates[d.template].output,
+        criteria: E.templates[d.template].criteria,
+        dependsOn: i ? String(i) : '',
+      }));
+    }
+    if (!Array.isArray(steps) || !steps.length || steps.length > 20)
+      throw Error('Use de 1 a 20 etapas.');
+    const seen = new Set();
+    steps = steps.map((step) => {
+      const a = state.agents.find((a) => a.id === step.agent),
+        template = E.templates[step.template];
+      if (!a || !template || a.department !== template.department)
+        throw Error('Responsável incompatível com o tipo da etapa.');
+      const stepId = text(step.id, 80);
+      if (!stepId || seen.has(stepId) || (step.dependsOn && !seen.has(step.dependsOn)))
+        throw Error('Dependências devem apontar para uma etapa anterior.');
+      seen.add(stepId);
+      return {
+        id: stepId,
+        title: text(step.title, 100),
+        template: step.template,
+        agent: a.id,
+        description: text(step.description || goal),
+        output: text(step.output || template.output, 1500),
+        criteria: text(step.criteria || template.criteria, 2000),
+        dependsOn: step.dependsOn || '',
+      };
+    });
+    const existing = this.data.plans.find((x) => x.id === p.id && x.projectId === project);
+    if (existing?.started) throw Error('Este plano já foi iniciado.');
+    const plan = {
+      id: existing?.id || id(),
+      projectId: project,
+      goal,
+      steps,
+      time: now(),
+      started: null,
+    };
+    if (existing) Object.assign(existing, plan);
+    else this.data.plans.push(plan);
+    this.audit(project, 'plan', 'Plano preparado para revisão: ' + goal, { planId: plan.id });
+    return { plan };
+  }
+  snapshot(project) {
+    this.project(project);
+    const files = {};
+    let bytes = 0;
+    for (const file of this.workstation.files(project)) {
+      const read = this.workstation.read(file.path, project);
+      if (!read.editable) continue;
+      bytes += Buffer.byteLength(read.text);
+      if (bytes > 12_000_000) throw Error('Projeto acima de 12 MB de código permitido.');
+      files[file.path] = read.text;
+    }
+    return files;
+  }
+  async createRun(p) {
+    const project = this.project(p.projectId);
+    if (this.workstation.projects.locks.has(project))
+      throw Error('Aguarde a operação deste projeto.');
+    if (project === 'firma')
+      throw Error('Use um projeto próprio para executar mudanças delegadas.');
+    const task = this.getState().tasks.find((t) => t.id === p.taskId && t.projectId === project);
+    if (!task || task.status === 'done') throw Error('Escolha uma tarefa aberta deste projeto.');
+    if (this.active && this.active.id === task.workRunId)
+      throw Error('Aguarde ou cancele a cópia atual desta tarefa.');
+    if (['running', 'pending', 'ready'].includes(task.execution?.status))
+      throw Error('Conclua ou cancele a ordem atual desta tarefa.');
+    const mode = p.mode || 'assisted';
+    if (!['manual', 'assisted', 'delegated'].includes(mode)) throw Error('Modo inválido.');
+    const base = this.snapshot(project),
+      limits = { ...this.meta(project).limits };
+    const run = {
+      id: id(),
+      projectId: project,
+      taskId: task.id,
+      mode,
+      status: 'prepared',
+      round: 0,
+      calls: 0,
+      limits,
+      input: JSON.parse(JSON.stringify(E.contract(this.getState(), task))),
+      projectContext: this.context(project),
+      base,
+      files: { ...base },
+      checkpoints: [],
+      evidence: [],
+      createdAt: now(),
+      error: '',
+      summary: '',
+      events: [],
+    };
+    if (
+      p.contextFiles !== undefined &&
+      (!Array.isArray(p.contextFiles) ||
+        p.contextFiles.length > 100 ||
+        p.contextFiles.some((name) => !Object.hasOwn(base, name)))
+    )
+      throw Error('Seleção de contexto inválida.');
+    run.contextFiles = p.contextFiles || [];
+    if (p.git === true)
+      run.git = await this.git.exclusive(project, async () => {
+        const git = await this.git.prepare(
+          project,
+          run.id,
+          path.join(this.dataDir, 'executions', run.id),
+        );
+        const current = this.snapshot(project);
+        if (JSON.stringify(current) !== JSON.stringify(base))
+          throw Error('O projeto mudou durante a preparação. Tente novamente.');
+        return git;
+      });
+    task.workRunId = run.id;
+    task.workStatus = 'prepared';
+    task.progress = 0;
+    task.status = 'queued';
+    task.result = '';
+    task.artifacts = [];
+    task.validation = null;
+    this.changed();
+    this.data.runs.push(run);
+    this.data.runs = this.data.runs.slice(-120);
+    this.audit(project, 'run', 'Cópia de trabalho preparada.', { runId: run.id, taskId: task.id });
+    return { runId: run.id };
+  }
+  getRun(runId) {
+    const run = this.data.runs.find((r) => r.id === runId);
+    if (!run) throw Error('Execução não encontrada.');
+    return run;
+  }
+  inspect(runId) {
+    const r = this.getRun(runId);
+    return {
+      ...r,
+      files: Object.keys(r.files)
+        .filter((name) => r.files[name] !== r.base[name])
+        .map((name) => ({ path: name, before: r.base[name] || '', after: r.files[name] })),
+    };
+  }
+  stage(p) {
+    const run = this.getRun(p.runId);
+    if (this.active?.id === run.id || ['integrated', 'integrating'].includes(run.status))
+      throw Error('Esta execução não pode ser alterada agora.');
+    this.workstation.projects.validate(p.path);
+    text(p.content, 300000);
+    if (Buffer.byteLength(p.content) > 300000) throw Error('Arquivo acima de 300 KB.');
+    if (
+      (!Object.hasOwn(run.files, p.path) && Object.keys(run.files).length >= 600) ||
+      Object.entries(run.files).reduce(
+        (n, [name, value]) => n + (name === p.path ? 0 : Buffer.byteLength(value)),
+        Buffer.byteLength(p.content),
+      ) > 12000000
+    )
+      throw Error('Limite da cópia atingido: 600 arquivos ou 12 MB.');
+    run.checkpoints.push({
+      id: id(),
+      time: now(),
+      files: { ...run.files },
+      label: 'Antes de editar ' + p.path,
+    });
+    run.checkpoints = run.checkpoints.slice(-5);
+    run.files[p.path] = p.content;
+    run.evidence = [];
+    run.status = 'staged';
+    this.audit(run.projectId, 'stage', 'Alteração preparada na cópia: ' + p.path, {
+      runId: run.id,
+    });
+    return {};
+  }
+  checkpoint(p) {
+    const run = this.getRun(p.runId);
+    if (this.active?.id === run.id || ['integrated', 'integrating'].includes(run.status))
+      throw Error('Execução indisponível.');
+    if (p.checkpointId) {
+      const checkpoint = run.checkpoints.find((c) => c.id === p.checkpointId);
+      if (!checkpoint) throw Error('Checkpoint não encontrado.');
+      run.files = { ...checkpoint.files };
+      run.evidence = [];
+      run.status = 'staged';
+    } else {
+      run.checkpoints.push({
+        id: id(),
+        time: now(),
+        label: text(p.label || 'Checkpoint', 100),
+        files: { ...run.files },
+      });
+      run.checkpoints = run.checkpoints.slice(-5);
+    }
+    this.audit(run.projectId, 'checkpoint', 'Checkpoint atualizado.', { runId: run.id });
+    return {};
+  }
+  checks(p) {
+    const project = this.project(p.projectId);
+    if (!Array.isArray(p.checks) || p.checks.length > 12) throw Error('Use até 12 verificações.');
+    this.meta(project).checks = p.checks.map((check) => ({
+      ...validateCheck(check, (name) => this.workstation.projects.validate(name)),
+      id: id(),
+    }));
+    this.audit(project, 'checks', 'Verificações do projeto configuradas.');
+    return {};
+  }
+  async command(dir, args, signal, timeout, kind = 'node') {
+    const result = await this.runner.run({ dir, args, signal, timeout, kind });
+    return {
+      ...result,
+      output: this.workstation.clean(result.output),
+      command:
+        kind === 'node'
+          ? 'node ' + args.join(' ')
+          : kind === 'npm-ci'
+            ? 'npm ci --ignore-scripts'
+            : 'npm run ' + args[0],
+      executor: this.runner.mode,
+    };
+  }
+  async validate(run, controller) {
+    const dir = path.join(this.dataDir, 'executions', run.id);
+    fs.mkdirSync(dir, { recursive: true });
+    if (fs.lstatSync(dir).isSymbolicLink())
+      throw Error('Pasta vinculada não permitida na execução.');
+    for (const [name, content] of Object.entries(run.files)) {
+      this.workstation.projects.validate(name);
+      const file = path.resolve(dir, name);
+      if (!file.startsWith(dir + path.sep)) throw Error('Caminho inválido na cópia.');
+      let parent = dir;
+      for (const part of name.split('/').slice(0, -1)) {
+        parent = path.join(parent, part);
+        if (fs.existsSync(parent) && fs.lstatSync(parent).isSymbolicLink())
+          throw Error('Link não permitido na cópia.');
+        fs.mkdirSync(parent, { recursive: true });
+      }
+      if (fs.existsSync(file) && fs.lstatSync(file).isSymbolicLink())
+        throw Error('Link não permitido na cópia.');
+      fs.writeFileSync(file, content);
+    }
+    const configured = run.authorizedChecks || this.meta(run.projectId).checks,
+      checks = configured.length ? configured : [{ kind: 'syntax', name: 'Sintaxe JavaScript' }];
+    run.status = 'checking';
+    run.evidence = [];
+    this.save();
+    for (const check of checks) {
+      if (controller.signal.aborted) throw Error('Execução cancelada.');
+      if (check.kind === 'syntax') {
+        const changed = Object.keys(run.files).filter((n) => /\.(?:js|cjs|mjs)$/.test(n));
+        for (const name of changed) {
+          const evidence = await this.command(
+            dir,
+            ['--check', name],
+            controller.signal,
+            Math.min(run.limits.seconds * 1000, 90000),
+          );
+          run.evidence.push({ ...evidence, name: 'Sintaxe · ' + name });
+          this.save();
+        }
+      } else if (check.kind === 'npm-ci' || check.kind === 'npm-script') {
+        if (!Object.hasOwn(run.files, 'package.json'))
+          throw Error('A cópia precisa de package.json.');
+        if (check.kind === 'npm-ci' && !Object.hasOwn(run.files, 'package-lock.json'))
+          throw Error('Adicione package-lock.json para uma instalação reproduzível.');
+        const evidence = await this.command(
+          dir,
+          check.kind === 'npm-script' ? [check.file] : [],
+          controller.signal,
+          Math.min(run.limits.seconds * 1000, 180000),
+          check.kind,
+        );
+        run.evidence.push({ ...evidence, name: check.name });
+        this.save();
+        if (!evidence.passed) break;
+      } else {
+        if (!Object.hasOwn(run.files, check.file))
+          throw Error('Arquivo de verificação não está na cópia: ' + check.file);
+        run.evidence.push({
+          ...(await this.command(
+            dir,
+            check.kind === 'node-test' ? ['--test', check.file] : [check.file],
+            controller.signal,
+            Math.min(run.limits.seconds * 1000, 90000),
+          )),
+          name: check.name,
+        });
+        this.save();
+      }
+    }
+    for (const [name, content] of Object.entries(run.files)) {
+      let unchanged = false;
+      try {
+        const file = path.resolve(dir, name),
+          stat = fs.lstatSync(file);
+        unchanged =
+          !stat.isSymbolicLink() &&
+          stat.nlink === 1 &&
+          stat.size <= 300000 &&
+          fs.readFileSync(file, 'utf8') === content;
+      } catch {}
+      if (!unchanged)
+        run.evidence.push({
+          name: 'Integridade · ' + name,
+          passed: false,
+          output:
+            'Uma verificação alterou ou removeu o código avaliado. Confira a cópia antes de continuar.',
+          time: now(),
+          command: 'comparação de conteúdo',
+        });
+    }
+    if (controller.signal.aborted) throw Error('Execução cancelada.');
+    run.status = run.evidence.some((e) => !e.passed) ? 'validation_failed' : 'review';
+    if (!run.evidence.length)
+      run.summary += ' Nenhuma verificação executável disponível; revise manualmente.';
+    this.audit(
+      run.projectId,
+      'validation',
+      run.status === 'review' ? 'Cópia pronta para revisão.' : 'Uma verificação falhou.',
+      { runId: run.id, taskId: run.taskId },
+    );
+  }
+  start(p) {
+    const run = this.getRun(p.runId);
+    if (p.confirm !== true) throw Error('Autorize o escopo desta execução.');
+    if (
+      this.active ||
+      this.workstation.child ||
+      this.ai.active ||
+      this.ai.activeChat ||
+      this.ai.armed.size
+    )
+      throw Error('Aguarde a execução atual.');
+    if (['integrated', 'integrating', 'generating', 'checking'].includes(run.status))
+      throw Error('Estado inválido.');
+    if (!E.officeOpen(this.getState())) throw Error('Abra o escritório antes de executar.');
+    if (run.mode === 'manual' && p.operation !== 'check')
+      throw Error('Modo manual: prepare os arquivos ou execute verificações.');
+    if (p.operation !== 'check' && run.calls >= run.limits.rounds)
+      throw Error('Limite de rodadas atingido. Prepare uma nova execução.');
+    const task = this.getState().tasks.find((t) => t.id === run.taskId);
+    if (!task || task.workRunId !== run.id) throw Error('Esta tarefa tem outra execução.');
+    if (
+      p.operation !== 'check' &&
+      task.dependency &&
+      !this.getState().tasks.some((t) => t.id === task.dependency && t.status === 'done')
+    )
+      throw Error('Aprove a etapa anterior antes de executar esta tarefa.');
+    task.workStatus = 'running';
+    run.authorizedChecks = JSON.parse(JSON.stringify(this.meta(run.projectId).checks));
+    run.startedAt = now();
+    this.changed();
+    const controller = new AbortController();
+    this.active = { id: run.id, controller };
+    run.error = '';
+    run.status = p.operation === 'check' ? 'checking' : 'generating';
+    this.save();
+    const timer = setTimeout(() => controller.abort(), run.limits.seconds * 1000);
+    this.execute(run, p.operation === 'check', controller)
+      .catch((error) => {
+        run.status = controller.signal.aborted ? 'cancelled' : 'interrupted';
+        run.error = this.ai.redact(error.message);
+        this.audit(run.projectId, 'error', run.error, { runId: run.id });
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        run.finishedAt = now();
+        const task = this.getState().tasks.find((t) => t.id === run.taskId);
+        if (task?.workRunId === run.id) task.workStatus = run.status;
+        this.active = null;
+        this.save();
+        if (!this.closed) this.changed();
+      });
+    return { runId: run.id };
+  }
+  async execute(run, checkOnly, controller) {
+    const task = this.getState().tasks.find((t) => t.id === run.taskId);
+    if (!task) throw Error('Tarefa removida.');
+    if (checkOnly) {
+      await this.validate(run, controller);
+      return;
+    }
+    do {
+      if (controller.signal.aborted) throw Error('Cancelado.');
+      run.status = 'generating';
+      run.round++;
+      this.save();
+      const selected = buildContext(
+        run,
+        task,
+        task.dependency
+          ? this.getState().tasks.find((t) => t.id === task.dependency)?.result || ''
+          : '',
+      );
+      const context = selected.text;
+      run.contextSelection = { files: selected.selected, omitted: selected.omitted };
+      this.save();
+      const role = E.taskDepartment(task),
+        pending = this.ai.chat({
+          role,
+          projectId: run.projectId,
+          executionId: run.id,
+          identity:
+            'Produza somente JSON com {"summary":"...","files":[{"path":"src/app.js","content":"conteúdo completo"}],"patches":[{"path":"arquivo.js","search":"trecho único existente","replace":"novo trecho"}]}. Use patches para alterações pequenas. O catálogo lista todos os arquivos, mas somente os selecionados têm conteúdo anexado. Não sobrescreva um arquivo cujo conteúdo não recebeu; prepare outra tarefa com seleção explícita. Faça mudanças somente nos arquivos de código deste projeto. Não use shell, não publique e não afirme executar ferramentas. Uma cópia local e um validador aplicam sua proposta.',
+          messages: [{ role: 'user', text: context }],
+          onUpdate: () => {},
+        });
+      run.calls++;
+      this.save();
+      const result = await pending;
+      if (controller.signal.aborted) throw Error('Cancelado.');
+      let value;
+      try {
+        value = JSON.parse(result.text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''));
+      } catch {
+        throw Error('A IA não retornou o contrato JSON esperado. A resposta não alterou arquivos.');
+      }
+      value.files ??= [];
+      value.patches ??= [];
+      if (!Array.isArray(value.patches) || value.patches.length > 40)
+        throw Error('Use até 40 alterações estruturadas.');
+      if (!Array.isArray(value.files) || value.files.length > 20)
+        throw Error('Proposta deve conter até 20 arquivos.');
+      const proposed = { ...run.files };
+      for (const file of value.files) {
+        if (Object.hasOwn(run.files, file.path) && !run.contextSelection.files.includes(file.path))
+          throw Error('A proposta tentou substituir um arquivo fora do contexto: ' + file.path);
+        require('./company-tools.cjs').validateProposal(role, file, this.workstation.projects);
+        proposed[file.path] = file.content;
+      }
+      for (const patch of value.patches) {
+        if (
+          !Object.hasOwn(proposed, patch.path) ||
+          !run.contextSelection.files.includes(patch.path)
+        )
+          throw Error('Alteração fora do contexto selecionado.');
+        const content = replaceExactly(proposed[patch.path], patch);
+        require('./company-tools.cjs').validateProposal(
+          role,
+          { path: patch.path, content },
+          this.workstation.projects,
+        );
+        proposed[patch.path] = content;
+      }
+      if (Object.keys(proposed).length > 600 || JSON.stringify(proposed).length > 12_000_000)
+        throw Error('Proposta acima do limite.');
+      run.checkpoints.push({
+        id: id(),
+        time: now(),
+        label: 'Antes da rodada ' + run.round,
+        files: { ...run.files },
+      });
+      run.checkpoints = run.checkpoints.slice(-5);
+      run.files = proposed;
+      run.summary = this.workstation
+        .clean(String(value.summary || 'Proposta recebida.'))
+        .slice(0, 3000);
+      run.provider = this.ai.settings.roles[role].provider;
+      run.model = result.model || this.ai.settings.roles[role].model;
+      run.tokens = (run.tokens || 0) + (result.usage?.tokens || 0);
+      this.audit(run.projectId, 'proposal', 'Rodada ' + run.round + ' recebida.', {
+        runId: run.id,
+      });
+      if (run.mode !== 'delegated') {
+        run.status = 'review';
+        break;
+      }
+      await this.validate(run, controller);
+    } while (run.status === 'validation_failed' && run.calls < run.limits.rounds);
+  }
+  async integrate(p) {
+    const run = this.getRun(p.runId);
+    if (p.confirm !== true) throw Error('Confirme a integração da cópia.');
+    if (run.status !== 'review' || this.active?.id === run.id)
+      throw Error('A execução precisa estar em revisão.');
+    const linked = this.getState().tasks.find((t) => t.id === run.taskId);
+    if (!linked || linked.workRunId !== run.id) throw Error('Esta tarefa tem outra execução.');
+    if (
+      linked.dependency &&
+      !this.getState().tasks.some((t) => t.id === linked.dependency && t.status === 'done')
+    )
+      throw Error('Aprove a etapa anterior antes de integrar.');
+    const changed = Object.keys(run.files).filter((name) => run.files[name] !== run.base[name]);
+    for (const name of changed) {
+      let disk;
+      try {
+        disk = this.workstation.read(name, run.projectId);
+      } catch {
+        if (Object.hasOwn(run.base, name)) throw Error('Arquivo do projeto foi removido: ' + name);
+      }
+      if (disk && (!disk.editable || disk.text !== run.base[name]))
+        throw Error('Conflito no projeto principal: ' + name);
+    }
+    const before = { ...this.snapshot(run.projectId) },
+      written = [];
+    run.integrationCheckpoint = { id: id(), files: before, time: now() };
+    run.status = 'integrating';
+    this.save();
+    try {
+      if (run.git) {
+        const dir = path.join(this.dataDir, 'executions', run.id);
+        for (const [name, content] of Object.entries(run.files)) {
+          const file = path.join(dir, name);
+          if (
+            !fs.existsSync(file) ||
+            fs.lstatSync(file).isSymbolicLink() ||
+            fs.readFileSync(file, 'utf8') !== content
+          )
+            throw Error('A cópia Git mudou. Execute as verificações novamente.');
+        }
+        await this.git.integrate(run, dir);
+      }
+
+      for (const name of run.git ? [] : changed) {
+        const old = Object.hasOwn(before, name) ? this.workstation.read(name, run.projectId) : null;
+        written.push(name);
+        this.workstation.projects.write({
+          project: run.projectId,
+          path: name,
+          text: run.files[name],
+          hash: old?.hash || '',
+          confirm: true,
+        });
+      }
+    } catch (error) {
+      const failures = [];
+      for (const name of written.reverse())
+        try {
+          const target = this.workstation.projects.target(name, run.projectId, true);
+          if (Object.hasOwn(before, name)) atomicWrite(target, before[name]);
+          else if (fs.existsSync(target)) {
+            const archive = path.join(this.dataDir, 'integration-rollback', run.id, name);
+            fs.mkdirSync(path.dirname(archive), { recursive: true });
+            fs.renameSync(target, archive);
+          }
+        } catch (rollbackError) {
+          failures.push(name);
+        }
+      run.status = 'interrupted';
+      run.error = failures.length
+        ? 'Integração interrompida; confira os arquivos: ' + failures.join(', ')
+        : 'Integração revertida. O checkpoint anterior foi preservado: ' + error.message;
+      this.save();
+      throw Error(run.error);
+    }
+    run.status = 'integrated';
+    run.completedAt = now();
+    const task = this.getState().tasks.find((t) => t.id === run.taskId);
+    if (task) {
+      task.workStatus = 'integrated';
+      if (task.execution) {
+        task.execution.status = 'completed';
+        task.execution.error = '';
+      }
+      task.artifacts = changed;
+      task.validation = {
+        runId: run.id,
+        passed: run.evidence.length > 0 && run.evidence.every((e) => e.passed),
+      };
+      task.result =
+        '# ' +
+        task.title +
+        '\n\n' +
+        run.summary +
+        '\n\nArquivos: ' +
+        changed.join(', ') +
+        '\n\nVerificações: ' +
+        run.evidence.map((e) => e.name + ': ' + (e.passed ? 'passou' : 'falhou')).join('; ');
+      task.status = 'review';
+      task.progress = 100;
+    }
+    this.changed();
+    this.audit(run.projectId, 'integrated', 'Mudanças integradas após revisão.', {
+      runId: run.id,
+      taskId: run.taskId,
+    });
+    return {};
+  }
+  async action(action, p = {}) {
+    if (!p || typeof p !== 'object' || Array.isArray(p)) throw Error('Dados inválidos.');
+    switch (action) {
+      case 'git.import':
+        return this.git.importRepository(p.url, p.confirm);
+      case 'release.prepare':
+        return require('./release-package.cjs').prepareRelease(this, p);
+      case 'git.init':
+        return this.git.exclusive(this.project(p.projectId), () =>
+          this.git.init(p.projectId, p.confirm),
+        );
+      case 'git.status':
+        return this.git.status(this.project(p.projectId));
+      case 'git.checkpoint':
+        return this.git.exclusive(this.project(p.projectId), () =>
+          this.git.checkpoint(p.projectId, p.confirm),
+        );
+      case 'backup.now':
+        return this.backups.create();
+      case 'backup.export':
+        return require('./company-backup.cjs').exportCompany(this);
+      case 'backup.inspect':
+        return require('./company-backup.cjs').inspectCompany(this, p.backup);
+      case 'backup.restore':
+        return require('./company-backup.cjs').restoreCompany(this, p.backup, p.confirm);
+      case 'project.configure':
+        return this.configure(p);
+      case 'memory':
+        return this.memory(p);
+      case 'plan':
+        return this.plan(p);
+      case 'run.create':
+        return this.createRun(p);
+      case 'run.stage':
+        return this.stage(p);
+      case 'run.checkpoint':
+        return this.checkpoint(p);
+      case 'run.start':
+        return this.start(p);
+      case 'run.integrate':
+        return this.git.exclusive(this.getRun(p.runId).projectId, () => this.integrate(p));
+      case 'run.cancel': {
+        if (!this.active || this.active.id !== p.runId) throw Error('Execução não está ativa.');
+        this.active.controller.abort();
+        if (this.ai.activeChat) this.ai.activeChat.controller.abort();
+        return {};
+      }
+      case 'checks.configure':
+        return this.checks(p);
+      case 'settings':
+        if (!this.decorations().includes(p.decoration || 'classic'))
+          throw Error('Esta decoração aguarda o marco indicado.');
+        this.data.settings = {
+          ...this.data.settings,
+          social: p.social !== false,
+          reducedMotion: !!p.reducedMotion,
+          decoration: ['classic', 'garden', 'wood'].includes(p.decoration)
+            ? p.decoration
+            : 'classic',
+        };
+        this.getState().preferences = { ...this.data.settings };
+        this.changed();
+        this.save();
+        return {};
+      default:
+        throw Error('Ação do projeto desconhecida.');
+    }
+  }
+  close() {
+    if (this.active) {
+      const run = this.getRun(this.active.id);
+      run.status = 'interrupted';
+      run.error = 'Servidor encerrado. Retome explicitamente após conferir os arquivos.';
+      this.active.controller.abort();
+      this.save();
+    }
+    this.closed = true;
+    this.git.close();
+    this.runner.close();
+  }
+}
+module.exports = { Company };

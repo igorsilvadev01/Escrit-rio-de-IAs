@@ -1,12 +1,43 @@
 {
   "name": "firma-ai-office",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "description": "Escritório jogável com acesso por clique, sala do administrador, código ao vivo, chat e terminal por setor",
   "scripts": {
     "start": "node server.cjs",
-    "check": "node --check app.js && node --check ui.js && node --check engine.js && node --check world.js && node --check access.js && node --check server.cjs && node --check ai-ui.js && node --check ai-runtime.cjs && node --check ai-providers.cjs && node --check codex-bridge.cjs && node --check workstation.cjs && node --check studio.js && node --check activity.js && node --check village-renderer.js && node --check workspace-projects.cjs && node --check company.cjs && node --check company-backup.cjs && node --check company-ui.js && node --check company-tools.cjs && node --check scene-model.js && node --check scene-controls.js",
-    "test": "node --test tests/engine.test.cjs tests/world.test.cjs tests/server.test.cjs tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs tests/office-life.test.cjs tests/company.test.cjs tests/scene.test.cjs",
-    "test:ai": "node --test tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs"
+    "build": "node scripts/build.cjs",
+    "check": "node scripts/check.cjs",
+    "typecheck": "tsc --project tsconfig.json",
+    "format": "prettier --write \"*.js\" \"*.cjs\" \"editor/\" \"scripts/\" \"tests/\" \"*.json\" \".github/\"",
+    "format:check": "prettier --check \"*.js\" \"*.cjs\" \"editor/\" \"scripts/\" \"tests/\" \"*.json\" \".github/\"",
+    "test": "node scripts/test.cjs",
+    "test:ai": "node --test tests/ai.test.cjs tests/codex-bridge.test.cjs tests/workstation.test.cjs tests/activity.test.cjs",
+    "test:browser": "node scripts/browser-tests.cjs",
+    "test:docker": "node --test tests/runner.docker.cjs",
+    "verify": "node scripts/verify.cjs",
+    "health": "node scripts/health.cjs",
+    "lint": "npm run check && npm run typecheck && npm run format:check"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "6.20.4",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/lint": "6.9.7",
+    "@codemirror/search": "6.7.2",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@types/node": "22.20.5",
+    "diff": "9.0.0",
+    "esbuild": "0.28.2",
+    "playwright": "1.64.1",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=22.18.0 <23"
   }
 }

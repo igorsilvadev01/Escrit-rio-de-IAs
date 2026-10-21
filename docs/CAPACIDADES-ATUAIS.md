@@ -1,5 +1,7 @@
 # Firma 0.13 — guia atual
 
+> Este guia registra a base 0.13. A versão atual é 0.14; mudanças de editor, armazenamento, Git, executor, backups e preparação de produção estão em [Atualização v0.14](ATUALIZACAO-V0.14.md). Em caso de diferença, prevalece esse documento.
+
 Este é o ponto de entrada para o funcionamento atual. Os documentos com `V0.x` no nome registram versões anteriores; descrições de paredes, salas antigas e ausência de ferramentas nesses registros são históricas.
 
 Pesquisa e detalhes das melhorias visuais aplicadas: [Evolução visual do escritório](EVOLUCAO-VISUAL-ESCRITORIO.md).

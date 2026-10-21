@@ -1,0 +1,13 @@
+.git
+.firma-private
+projects
+node_modules
+artifacts
+coverage
+test-results
+playwright-report
+.env
+.env.*
+!.env.example
+*.log
+*.tar.gz

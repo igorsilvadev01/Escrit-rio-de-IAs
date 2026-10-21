@@ -1,12 +1,145 @@
-const test=require('node:test'),assert=require('node:assert/strict'),W=require('../world.js'),E=require('../engine.js');
-function reachable(start,end){const route=W.path(start,end);assert.ok(route.length,JSON.stringify(end)+' must be reachable');let prev=start,length=0;for(const next of route){assert.ok(W.clearSegment(prev,next),'cannot cross furniture or walls');length+=Math.hypot(next.x-prev.x,next.y-prev.y);prev=next;}assert.ok(Math.hypot(prev.x-end.x,prev.y-end.y)<1);return length;}
-test('five adjoining rooms replace the seven-room plan; no separate lounge or admin wing',()=>{assert.equal(W.rooms.length,5);assert.equal(W.rooms.some(r=>r.id==='rest'||r.id==='admin'),false);assert.ok(W.stations.some(s=>s.id==='rest'));assert.ok(W.playerSeats.rest);assert.equal(W.lounge.seats.length,3);assert.equal(W.roomForStation('admin'),W.roomForStation('leadership'));assert.ok(W.width*W.height<960*720*.6);});
-test('opposing doors share a short passage and neighboring sectors share walls',()=>{const [p,d,t,post]=W.rooms;assert.ok(d.x-(p.x+p.w)<=4);assert.ok(post.x-(t.x+t.w)<=4);assert.equal(p.door.x,t.door.x);assert.equal(d.door.x,post.door.x);assert.ok(t.door.y-p.door.y<=24);assert.ok(Math.abs(p.door.x-d.door.x)<=56);for(const r of W.rooms)assert.ok(W.walkable(r.door.x,r.door.y));});
-test('every terminal is reachable within 450 walking units of the shared entrance',()=>{assert.ok(W.walkable(W.spawn.x,W.spawn.y));for(const s of W.stations){assert.ok(W.walkable(s.x,s.y),s.id);assert.ok(reachable(W.spawn,s)<450,s.id+' should have a short path');assert.equal(W.stationAt(s.area.x+s.area.w/2,s.area.y+s.area.h/2).id,s.id);}});
-test('the player and Codex work in the same room with separately clickable computers',()=>{for(const p of [W.leaderHome,W.playerSeats.admin,...W.stations.filter(s=>['leadership','admin'].includes(s.id))]){assert.equal(W.roomAt(p.x,p.y).id,'leadership');reachable(W.spawn,p);}assert.ok(Math.hypot(W.leaderHome.x-W.playerSeats.admin.x,W.leaderHome.y-W.playerSeats.admin.y)<150);assert.equal(W.stationAt(W.furniture.adminDesk.x+20,W.furniture.adminDesk.y).id,'admin');});
-test('all departmental seats are reachable and remain in their own room during pauses',()=>{for(const room of W.rooms.filter(r=>r.seats.length))for(let i=0;i<6;i++){const seat=W.agentSeat({department:room.id},i);assert.equal(W.roomAt(seat.x,seat.y).id,room.id);assert.ok(W.walkable(seat.x,seat.y));reachable(W.spawn,seat);}});
-test('meeting area and controls have no physical targets in the open workspace',()=>{assert.equal(W.meetingArea,undefined);assert.equal(W.meetingSeats,undefined);assert.equal(W.meetingStation,undefined);assert.equal(W.furniture.meetingTable,undefined);assert.equal(W.playerSeats.meeting,undefined);assert.ok(W.roomForStation('leadership').w*W.roomForStation('leadership').h<280*292*.35);assert.ok(W.walkable(500,320));});
-test('furniture stays solid while former walls allow walking in every direction',()=>{const desk=W.workDesks[0],start={x:desk.x+desk.w+8,y:desk.y+15},end=W.move(start,-300,0);assert.ok(end.x>=desk.x+desk.w+6-.1);assert.equal(W.walkable(desk.x+10,desk.y+10),false);assert.deepEqual(W.walls,[]);for(const [a,b] of [[{x:222,y:184},{x:268,y:184}],[{x:154,y:190},{x:154,y:244}],[{x:390,y:276},{x:420,y:276}]])assert.ok(W.clearSegment(a,b));assert.equal(W.walkable(80,425),false);assert.ok(W.walkable(137,430));assert.equal(W.walkable(NaN,300),false);assert.deepEqual(W.path(W.spawn,{x:NaN,y:10}),[]);});
-test('clicking furniture resolves to adjacent reachable floor',()=>{const desk=W.workDesks[0],inside={x:desk.x+20,y:desk.y+10},route=W.path(W.spawn,inside);assert.ok(route.length);assert.ok(W.walkable(route.at(-1).x,route.at(-1).y));assert.notDeepEqual(route.at(-1),inside);});
-test('old floor plans re-enter safely while identity, visits, tasks and credentials-free state survive',()=>{for(const layout of ['village-v4','compact-v3','compact-v2','rooms-v1']){const state=E.create();Object.assign(state.player,{layout,x:700,y:600,name:'Igor',visited:['planning','rest','admin']});const migrated=E.migrate(state);assert.equal(migrated.player.layout,'open-v5');assert.equal(migrated.player.x,W.spawn.x);assert.equal(migrated.player.y,W.spawn.y);assert.equal(migrated.player.name,'Igor');assert.deepEqual(migrated.player.visited,state.player.visited);assert.deepEqual(migrated.tasks,state.tasks);}});
-test('new saves keep exact position and appearance on repeated loads',()=>{const state=E.create();Object.assign(state.player,{x:W.playerSeats.admin.x,y:W.playerSeats.admin.y,name:'Igor',color:'#aabbcc'});assert.deepEqual(E.migrate(state).player,state.player);assert.deepEqual(E.migrate(E.migrate(state)).player,state.player);});
+const test = require('node:test'),
+  assert = require('node:assert/strict'),
+  W = require('../world.js'),
+  E = require('../engine.js');
+function reachable(start, end) {
+  const route = W.path(start, end);
+  assert.ok(route.length, JSON.stringify(end) + ' must be reachable');
+  let prev = start,
+    length = 0;
+  for (const next of route) {
+    assert.ok(W.clearSegment(prev, next), 'cannot cross furniture or walls');
+    length += Math.hypot(next.x - prev.x, next.y - prev.y);
+    prev = next;
+  }
+  assert.ok(Math.hypot(prev.x - end.x, prev.y - end.y) < 1);
+  return length;
+}
+test('five adjoining rooms replace the seven-room plan; no separate lounge or admin wing', () => {
+  assert.equal(W.rooms.length, 5);
+  assert.equal(
+    W.rooms.some((r) => r.id === 'rest' || r.id === 'admin'),
+    false,
+  );
+  assert.ok(W.stations.some((s) => s.id === 'rest'));
+  assert.ok(W.playerSeats.rest);
+  assert.equal(W.lounge.seats.length, 3);
+  assert.equal(W.roomForStation('admin'), W.roomForStation('leadership'));
+  assert.ok(W.width * W.height < 960 * 720 * 0.6);
+});
+test('opposing doors share a short passage and neighboring sectors share walls', () => {
+  const [p, d, t, post] = W.rooms;
+  assert.ok(d.x - (p.x + p.w) <= 4);
+  assert.ok(post.x - (t.x + t.w) <= 4);
+  assert.equal(p.door.x, t.door.x);
+  assert.equal(d.door.x, post.door.x);
+  assert.ok(t.door.y - p.door.y <= 24);
+  assert.ok(Math.abs(p.door.x - d.door.x) <= 56);
+  for (const r of W.rooms) assert.ok(W.walkable(r.door.x, r.door.y));
+});
+test('every terminal is reachable within 450 walking units of the shared entrance', () => {
+  assert.ok(W.walkable(W.spawn.x, W.spawn.y));
+  for (const s of W.stations) {
+    assert.ok(W.walkable(s.x, s.y), s.id);
+    assert.ok(reachable(W.spawn, s) < 450, s.id + ' should have a short path');
+    assert.equal(W.stationAt(s.area.x + s.area.w / 2, s.area.y + s.area.h / 2).id, s.id);
+  }
+});
+test('the player and Codex work in the same room with separately clickable computers', () => {
+  for (const p of [
+    W.leaderHome,
+    W.playerSeats.admin,
+    ...W.stations.filter((s) => ['leadership', 'admin'].includes(s.id)),
+  ]) {
+    assert.equal(W.roomAt(p.x, p.y).id, 'leadership');
+    reachable(W.spawn, p);
+  }
+  assert.ok(
+    Math.hypot(W.leaderHome.x - W.playerSeats.admin.x, W.leaderHome.y - W.playerSeats.admin.y) <
+      150,
+  );
+  assert.equal(W.stationAt(W.furniture.adminDesk.x + 20, W.furniture.adminDesk.y).id, 'admin');
+});
+test('all departmental seats are reachable and remain in their own room during pauses', () => {
+  for (const room of W.rooms.filter((r) => r.seats.length))
+    for (let i = 0; i < 6; i++) {
+      const seat = W.agentSeat({ department: room.id }, i);
+      assert.equal(W.roomAt(seat.x, seat.y).id, room.id);
+      assert.ok(W.walkable(seat.x, seat.y));
+      reachable(W.spawn, seat);
+    }
+});
+test('meeting area and controls have no physical targets in the open workspace', () => {
+  assert.equal(W.meetingArea, undefined);
+  assert.equal(W.meetingSeats, undefined);
+  assert.equal(W.meetingStation, undefined);
+  assert.equal(W.furniture.meetingTable, undefined);
+  assert.equal(W.playerSeats.meeting, undefined);
+  assert.ok(W.roomForStation('leadership').w * W.roomForStation('leadership').h < 280 * 292 * 0.35);
+  assert.ok(W.walkable(500, 320));
+});
+test('furniture stays solid while former walls allow walking in every direction', () => {
+  const desk = W.workDesks[0],
+    start = { x: desk.x + desk.w + 8, y: desk.y + 15 },
+    end = W.move(start, -300, 0);
+  assert.ok(end.x >= desk.x + desk.w + 6 - 0.1);
+  assert.equal(W.walkable(desk.x + 10, desk.y + 10), false);
+  assert.deepEqual(W.walls, []);
+  for (const [a, b] of [
+    [
+      { x: 222, y: 184 },
+      { x: 268, y: 184 },
+    ],
+    [
+      { x: 154, y: 190 },
+      { x: 154, y: 244 },
+    ],
+    [
+      { x: 390, y: 276 },
+      { x: 420, y: 276 },
+    ],
+  ])
+    assert.ok(W.clearSegment(a, b));
+  assert.equal(W.walkable(80, 425), false);
+  assert.ok(W.walkable(137, 430));
+  assert.equal(W.walkable(NaN, 300), false);
+  assert.deepEqual(W.path(W.spawn, { x: NaN, y: 10 }), []);
+});
+test('clicking furniture resolves to adjacent reachable floor', () => {
+  const desk = W.workDesks[0],
+    inside = { x: desk.x + 20, y: desk.y + 10 },
+    route = W.path(W.spawn, inside);
+  assert.ok(route.length);
+  assert.ok(W.walkable(route.at(-1).x, route.at(-1).y));
+  assert.notDeepEqual(route.at(-1), inside);
+});
+test('old floor plans re-enter safely while identity, visits, tasks and credentials-free state survive', () => {
+  for (const layout of ['village-v4', 'compact-v3', 'compact-v2', 'rooms-v1']) {
+    const state = E.create();
+    Object.assign(state.player, {
+      layout,
+      x: 700,
+      y: 600,
+      name: 'Igor',
+      visited: ['planning', 'rest', 'admin'],
+    });
+    const migrated = E.migrate(state);
+    assert.equal(migrated.player.layout, 'open-v5');
+    assert.equal(migrated.player.x, W.spawn.x);
+    assert.equal(migrated.player.y, W.spawn.y);
+    assert.equal(migrated.player.name, 'Igor');
+    assert.deepEqual(migrated.player.visited, state.player.visited);
+    assert.deepEqual(migrated.tasks, state.tasks);
+  }
+});
+test('new saves keep exact position and appearance on repeated loads', () => {
+  const state = E.create();
+  Object.assign(state.player, {
+    x: W.playerSeats.admin.x,
+    y: W.playerSeats.admin.y,
+    name: 'Igor',
+    color: '#aabbcc',
+  });
+  assert.deepEqual(E.migrate(state).player, state.player);
+  assert.deepEqual(E.migrate(E.migrate(state)).player, state.player);
+});

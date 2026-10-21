@@ -7,3 +7,16 @@
 @media(min-width:901px){.st-pane-chat .st-chat{box-shadow:inset 3px 0 #92abff}.st-pane-terminal .st-terminal{box-shadow:inset 0 3px #92abff}}
 @media(max-width:1100px){.st-grid{grid-template-columns:165px minmax(180px,1fr) minmax(300px,340px)}.st-file{font-size:10px!important}.st-top p{max-width:400px}}
 @media(max-width:900px){#studio{width:calc(100vw - 12px);height:calc(100dvh - 12px);border-radius:10px}.st-top{padding:10px 12px;gap:8px}.st-top h2{font-size:14px}.st-top p{font-size:9px;max-width:220px}.st-pill{display:none}.st-top-actions .st-button{font-size:10px;padding:6px}.st-grid{display:block;position:relative}.st-files{display:none}.st-work{height:100%;display:block}.st-editor{height:100%}.st-chat{display:none;height:100%;border:0}.st-terminal{display:none;height:100%;border-top:0}.st-task-view{height:100%}.st-pane-chat .st-work{display:none}.st-pane-chat .st-chat{display:flex}.st-pane-terminal .st-editor,.st-pane-terminal .st-task-view{display:none}.st-pane-terminal .st-terminal{display:flex}.st-pane-tasks .st-terminal{display:none}.st-code-wrap pre{font-size:11px}.st-editor-head{flex-wrap:wrap}.st-mobile-file{display:block;width:100%;font-size:11px!important}.st-footer{font-size:9px}.st-composer textarea{height:65px}.st-tabs button{padding:6px 11px}.studio-launch{font-size:10px;padding:7px}.st-terminal-head select{max-width:none;flex:1}.st-footer span:last-child{display:none}}
+/* CodeMirror keeps the same buffers, recovery and save/conflict controls. */
+#studio.cm-ready .st-code-wrap { display: block; position: relative; overflow: hidden; }
+#st-codemirror { height: 100%; min-height: 120px; width: 100%; min-width: 0; flex: 1; }
+#st-codemirror[hidden] { display: none; }
+#st-codemirror .cm-editor { height: 100%; }
+#st-codemirror .cm-scroller { min-height: 0; }
+#studio.cm-ready #st-production { height: 100%; overflow: auto; }
+.line-diff { max-height: 55vh; overflow: auto; border: 1px solid #b6b79c; background: #fbf7ed; font: 12px/1.7 Consolas, monospace; }
+.line-diff-row { display: flex; min-width: max-content; }
+.line-diff-row > span { width: 45px; flex: 0 0 45px; padding: 0 7px; color: #67745d; text-align: right; border-right: 1px solid #dedbc9; user-select: none; }
+.line-diff-row code { display: block; white-space: pre; padding: 0 9px; color: #283f2c; font: inherit; }
+.line-diff-row.desk-plus { background: #daefd7; }
+.line-diff-row.desk-minus { background: #f6dcd3; }

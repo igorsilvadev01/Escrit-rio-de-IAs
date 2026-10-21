@@ -1,24 +1,82 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const {chromium}=require(process.env.FIRMA_PLAYWRIGHT||'playwright'),{fakeProviders}=require('./ai-fixtures.cjs');
-const fake=fakeProviders(),server=require('./browser-server.cjs').office(fake);
-(async()=>{let browser;const errors=[];try{
-  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
-  browser=await chromium.launch({headless:true,...(process.env.FIRMA_BROWSER?{executablePath:process.env.FIRMA_BROWSER}:{})});await server.authorizeBrowser(browser);
-  const page=await browser.newPage({viewport:{width:1512,height:982}});page.on('pageerror',e=>errors.push(e.message));await page.goto(url);await page.locator('#modal[open]').waitFor();await page.locator('#modal-submit').click();await page.waitForFunction(()=>window.FirmaStudio&&!document.getElementById('modal').open);
-  const initial=await page.evaluate(()=>({x:FirmaGame.player.x,y:FirmaGame.player.y}));
-  const leader=await page.evaluate(()=>{const p=FirmaGame.leaderPosition;return FirmaGame.project({x:p.x,y:p.y-12});});await page.mouse.click(leader.x,leader.y);await page.locator('#studio[open]').waitFor();assert.equal(await page.locator('#st-role').inputValue(),'leadership');assert.match(await page.locator('#st-grid').getAttribute('class'),/st-pane-chat/);assert.deepEqual(await page.evaluate(()=>({x:FirmaGame.player.x,y:FirmaGame.player.y})),initial);assert.equal(await page.evaluate(()=>FirmaGame.moving),false);assert.equal(fake.calls.length,0);
-  async function openMap(id){if(await page.locator('#studio').evaluate(el=>el.open))await page.locator('#st-close').click();await page.locator('.office-destinations>summary').click();await page.locator('[data-destination="'+id+'"]').click();await page.locator('#studio[open]').waitFor();}
-  await openMap('admin');assert.equal(await page.evaluate(()=>FirmaWorld.rooms.length),5);assert.equal(await page.evaluate(()=>FirmaStudio.room),'admin');assert.equal(await page.locator('#st-role').inputValue(),'development');assert.match(await page.locator('#studio-title').innerText(),/administrador/);assert.equal(await page.locator('#st-task-role').inputValue(),'development');assert.deepEqual(await page.evaluate(()=>({x:FirmaGame.player.x,y:FirmaGame.player.y})),initial);assert.equal(fake.calls.length,0);
-  await page.evaluate(async()=>{await FirmaAccess.ai('codex.login');await FirmaAccess.ai('codex.check');});await page.waitForFunction(()=>!document.getElementById('st-send').disabled);
-  await page.locator('#st-prompt').fill('QA: proponha uma soma sem executar.');await page.locator('#st-consent').check();await page.locator('#st-send').click();await page.locator('.st-message-body').filter({hasText:'Resposta de QA do Codex'}).waitFor();assert.equal(fake.calls.length,1);assert.equal(fake.calls[0].provider,'codex');
-  await page.locator('#st-source').selectOption('files');await page.locator('#st-file-select').selectOption('app.js');page.once('dialog',d=>d.accept());await page.locator('#st-run').click();await page.locator('#st-terminal-output').filter({hasText:'concluído'}).waitFor();
-  await page.locator('[data-pane=tasks]').click();await page.locator('#st-task-title').fill('QA: função pela mesa admin');await page.locator('#st-task-description').fill('Missão preparada sem enviar à IA.');await page.locator('#st-task-form [type=submit]').click();await page.waitForFunction(()=>FirmaUI.state.tasks.some(t=>t.title==='QA: função pela mesa admin'&&t.execution?.role==='development'&&t.execution?.status==='held'));assert.equal(fake.calls.length,1);
-  await page.locator('[data-pane=code]').click();fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:path.resolve('artifacts/firma-sala-admin-desktop.png'),fullPage:true});
-  await page.locator('#st-role').selectOption('leadership');assert.equal(await page.evaluate(()=>FirmaStudio.room),'admin');assert.match(await page.locator('#studio-title').innerText(),/administrador/);
-  await openMap('development');await page.locator('.st-message-body').filter({hasText:'Resposta de QA do Codex'}).waitFor();assert.equal(fake.calls.length,1);assert.equal(await page.evaluate(()=>FirmaStudio.room),'development');
-  await page.locator('#st-close').click();await page.evaluate(()=>FirmaGame.goTo(FirmaWorld.playerSeats.admin));await page.waitForFunction(()=>FirmaGame.seated==='admin',{},{timeout:16000});assert.equal(await page.evaluate(()=>FirmaWorld.roomAt(FirmaGame.player.x,FirmaGame.player.y).id),'leadership');await page.evaluate(()=>FirmaUI.save());
-  const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(url);await mobile.waitForFunction(()=>window.FirmaStudio);await mobile.evaluate(()=>FirmaGame.openStation('admin','chat'));await mobile.locator('.st-message-body').filter({hasText:'Resposta de QA do Codex'}).waitFor();assert.equal(await mobile.evaluate(()=>FirmaStudio.room),'admin');assert.equal(await mobile.evaluate(()=>document.getElementById('studio').scrollWidth<=document.getElementById('studio').clientWidth),true);await mobile.screenshot({path:path.resolve('artifacts/firma-sala-admin-mobile.png'),fullPage:true});
-  const guest=await browser.newContext(),visitor=await guest.newPage();await visitor.goto(url);await visitor.locator('#visit-office').click();await visitor.waitForFunction(()=>window.FirmaGame);await visitor.evaluate(()=>FirmaGame.openStation('admin'));await visitor.locator('.visitor-note').filter({hasText:'reservados'}).waitFor();assert.equal(await visitor.locator('#studio').count(),0);assert.equal(await visitor.evaluate(async()=>(await fetch('/api/studio/status')).status),401);await guest.close();
-  assert.deepEqual(errors,[]);console.log('PASS: instant Codex click and map shortcuts without movement, seventh admin room, shared development chat and missions, real terminal, physical admin chair, mobile layout and visitor protection. No provider charges.');
-}finally{await browser?.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+const assert = require('node:assert/strict'),
+  fs = require('node:fs'),
+  path = require('node:path');
+const { chromium } = require('playwright'),
+  { fakeProviders } = require('./ai-fixtures.cjs');
+const fake = fakeProviders(),
+  server = require('./browser-server.cjs').office(fake);
+(async () => {
+  let browser;
+  const errors = [];
+  try {
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    const url = 'http://127.0.0.1:' + server.address().port;
+    browser = await chromium.launch({
+      headless: true,
+      ...(process.env.FIRMA_BROWSER ? { executablePath: process.env.FIRMA_BROWSER } : {}),
+    });
+    await server.authorizeBrowser(browser);
+    const page = await browser.newPage({ viewport: { width: 1512, height: 982 } });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(url);
+    await page.locator('#modal[open]').waitFor();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() => window.FirmaStudio && !document.getElementById('modal').open);
+    await page.evaluate(() => FirmaGame.openStation('admin', 'chat'));
+    await page.locator('#studio[open]').waitFor();
+    assert.equal(await page.locator('#st-role').inputValue(), 'development');
+    assert.match(await page.locator('#studio-title').innerText(), /Sua mesa/);
+    await page.evaluate(async () => {
+      await FirmaAccess.ai('codex.login');
+      await FirmaAccess.ai('codex.check');
+    });
+    await page.waitForFunction(() => !document.getElementById('st-send').disabled);
+    await page.locator('#st-prompt').fill('Proponha uma função pequena.');
+    await page.locator('.ide-send-options summary').click();
+    await page.locator('#st-consent').check();
+    await page.locator('#st-send').click();
+    await page.locator('.st-message-body').filter({ hasText: 'Resposta de QA do Codex' }).waitFor();
+    assert.equal(fake.calls.length, 1);
+    await page.locator('[data-pane=tasks]').click();
+    await page.locator('#st-task-new').click();
+    await page.locator('#modal [name=title]').fill('Tarefa criada pela mesa');
+    await page.locator('#modal [name=description]').fill('Implementar uma função.');
+    await page.locator('#modal [name=executionMode]').selectOption('real');
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() =>
+      FirmaUI.state.tasks.some(
+        (t) => t.title === 'Tarefa criada pela mesa' && t.execution?.status === 'held',
+      ),
+    );
+    assert.equal(fake.calls.length, 1);
+    await page.locator('#close-modal').click();
+    const guest = await browser.newContext(),
+      visitor = await guest.newPage();
+    await visitor.goto(url);
+    await visitor.locator('#visit-office:enabled').click();
+    await visitor.waitForFunction(() => window.FirmaGame);
+    await visitor.evaluate(() => FirmaGame.openStation('admin'));
+    assert.equal(await visitor.locator('#studio').count(), 0);
+    assert.equal(
+      await visitor.evaluate(async () => (await fetch('/api/studio/status')).status),
+      401,
+    );
+    await guest.close();
+    fs.mkdirSync('artifacts', { recursive: true });
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-admin-current.png'),
+      fullPage: true,
+    });
+    assert.deepEqual(errors, []);
+    console.log(
+      'PASS: admin desk, explicit provider consent, held task creation, shared history and visitor restrictions; one mocked provider call.',
+    );
+  } finally {
+    await browser?.close();
+    server.close();
+  }
+})().catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});

@@ -1,31 +1,164 @@
-const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
-const {chromium}=require(process.env.FIRMA_PLAYWRIGHT||'playwright'),{fakeProviders}=require('./ai-fixtures.cjs');
-const fake=fakeProviders(),server=require('./browser-server.cjs').office(fake);
-(async()=>{let browser;const errors=[];try{
-  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
-  browser=await chromium.launch({headless:true,...(process.env.FIRMA_BROWSER?{executablePath:process.env.FIRMA_BROWSER}:{})});await server.authorizeBrowser(browser);
-  const page=await browser.newPage({viewport:{width:1512,height:982}});page.on('pageerror',e=>errors.push(e.message));await page.goto(url);await page.locator('#modal[open]').waitFor();await page.locator('#modal-submit').click();await page.waitForFunction(()=>window.FirmaStudio&&!document.getElementById('modal').open);
-  assert.equal(await page.evaluate(()=>FirmaWorld.chairs.length),24);await page.waitForFunction(()=>FirmaGame.agentPositions.length===6&&FirmaGame.agentPositions.every(p=>p.sitting));
-  fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:path.resolve('artifacts/firma-office-life.png'),fullPage:true});
-  await page.evaluate(()=>FirmaUI.agentDetail('1'));await page.locator('[data-agent-smalltalk]').click();await page.locator('[data-smalltalk="work"]').click();assert.match(await page.locator('#smalltalk-log').innerText(),/tarefas em aberto/);await page.locator('#close-modal').click();
-  await page.evaluate(async()=>{await FirmaAccess.command('agent.pause',{id:'1'});await FirmaUI.sync();});
-  await page.waitForFunction(()=>{const a=FirmaGame.agentPositions.find(p=>p.id==='1'),seat=FirmaWorld.lounge.seats[0];return a?.sitting&&Math.hypot(a.x-seat.x,a.y-seat.y)<1;},{},{timeout:18000});
-  await page.screenshot({path:path.resolve('artifacts/firma-coffee-break.png'),fullPage:true});
-  await page.evaluate(()=>FirmaGame.openStation('rest'));await page.locator('#modal[open]').waitFor();await page.locator('[data-action="rest-sit"]').click();await page.waitForFunction(()=>FirmaGame.seated==='rest',{},{timeout:10000});
-  await page.locator('#office-toggle').click();await page.locator('#modal-submit').click();await page.waitForFunction(()=>FirmaUI.state.office.status==='closing');
-  assert.equal(await page.evaluate(()=>FirmaUI.state.agents.filter(a=>FirmaEngine.presence(FirmaUI.state,a.id)==='leaving').length),1);
-  const tasks=await page.evaluate(()=>FirmaUI.state.tasks.map(t=>t.progress));
-  await page.waitForFunction(()=>FirmaUI.state.office.cursor>=1,{},{timeout:8000});assert.equal(await page.evaluate(()=>FirmaEngine.presence(FirmaUI.state,'1')),'outside');assert.ok(await page.evaluate(()=>FirmaGame.agentPositions.length<6));
-  await page.screenshot({path:path.resolve('artifacts/firma-closing-office.png'),fullPage:true});
-  await page.evaluate(async()=>{const s=FirmaEngine.migrate(FirmaUI.state);FirmaEngine.advanceOffice(s,(s.office.order.length-1-s.office.cursor)*FirmaEngine.shiftSeconds-s.office.progress);await FirmaAccess.command('restore',{state:s});await FirmaUI.sync();});
-  await page.waitForFunction(()=>FirmaUI.state.office.status==='closed',{},{timeout:8000});assert.equal(await page.evaluate(()=>FirmaGame.agentPositions.length),0);assert.equal(await page.evaluate(()=>FirmaGame.leaderPosition),null);assert.deepEqual(await page.evaluate(()=>FirmaUI.state.tasks.map(t=>t.progress)),tasks);
-  await page.reload();await page.waitForFunction(()=>window.FirmaGame);assert.equal(await page.evaluate(()=>FirmaUI.state.office.status),'closed');assert.equal(await page.evaluate(()=>FirmaGame.agentPositions.length),0);await page.screenshot({path:path.resolve('artifacts/firma-closed-office.png'),fullPage:true});
-  await page.locator('#office-toggle').click();await page.locator('#modal-submit').click();await page.waitForFunction(()=>FirmaUI.state.office.status==='opening');assert.equal(await page.evaluate(()=>FirmaUI.state.office.order[0]),'codex-leader');
-  await page.waitForFunction(()=>FirmaUI.state.office.cursor>=1,{},{timeout:8000});assert.ok(await page.evaluate(()=>FirmaGame.agentPositions.length<=1));
-  await page.evaluate(async()=>{const s=FirmaEngine.migrate(FirmaUI.state);FirmaEngine.advanceOffice(s,(s.office.order.length-1-s.office.cursor)*FirmaEngine.shiftSeconds-s.office.progress);await FirmaAccess.command('restore',{state:s});await FirmaUI.sync();});
-  await page.waitForFunction(()=>FirmaUI.state.office.status==='open'&&FirmaGame.agentPositions.length===6,{},{timeout:8000});
-  assert.equal(fake.calls.length,0);
-  const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(url);await mobile.waitForFunction(()=>window.FirmaGame);assert.equal(await mobile.locator('#office-toggle').isVisible(),true);assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await mobile.screenshot({path:path.resolve('artifacts/firma-office-life-mobile.png'),fullPage:true});
-  const guest=await browser.newContext(),visitor=await guest.newPage();await visitor.goto(url);await visitor.locator('#visit-office').click();await visitor.waitForFunction(()=>window.FirmaGame);assert.equal(await visitor.locator('#office-toggle').isVisible(),false);await guest.close();
-  assert.deepEqual(errors,[]);console.log('PASS: seated employees, local conversation, reachable coffee corner, serialized exits/entries, persistent closed office, preserved tasks, reopening, mobile control and visitor limits; no AI calls or browser errors.');
-}finally{await browser?.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+const assert = require('node:assert/strict'),
+  path = require('node:path'),
+  fs = require('node:fs');
+const { chromium } = require(process.env.FIRMA_PLAYWRIGHT || 'playwright'),
+  { fakeProviders } = require('./ai-fixtures.cjs');
+const fake = fakeProviders(),
+  server = require('./browser-server.cjs').office(fake);
+(async () => {
+  let browser;
+  const errors = [];
+  try {
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    const url = 'http://127.0.0.1:' + server.address().port;
+    browser = await chromium.launch({
+      headless: true,
+      ...(process.env.FIRMA_BROWSER ? { executablePath: process.env.FIRMA_BROWSER } : {}),
+    });
+    await server.authorizeBrowser(browser);
+    const page = await browser.newPage({ viewport: { width: 1512, height: 982 } });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(url);
+    await page.locator('#modal[open]').waitFor();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() => window.FirmaStudio && !document.getElementById('modal').open);
+    assert.equal(await page.evaluate(() => FirmaWorld.chairs.length), 24);
+    await page.waitForFunction(
+      () =>
+        FirmaGame.agentPositions.length === 6 && FirmaGame.agentPositions.every((p) => p.sitting),
+    );
+    fs.mkdirSync('artifacts', { recursive: true });
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-office-life.png'),
+      fullPage: true,
+    });
+    await page.evaluate(() => FirmaUI.agentDetail('1'));
+    await page.locator('[data-agent-smalltalk]').click();
+    await page.locator('[data-smalltalk="work"]').click();
+    assert.match(await page.locator('#smalltalk-log').innerText(), /tarefas em aberto/);
+    await page.locator('#close-modal').click();
+    await page.evaluate(async () => {
+      await FirmaAccess.command('agent.pause', { id: '1' });
+      await FirmaUI.sync();
+    });
+    await page.waitForFunction(
+      () => {
+        const a = FirmaGame.agentPositions.find((p) => p.id === '1'),
+          seat = FirmaWorld.lounge.seats[0];
+        return a?.sitting && Math.hypot(a.x - seat.x, a.y - seat.y) < 1;
+      },
+      {},
+      { timeout: 18000 },
+    );
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-coffee-break.png'),
+      fullPage: true,
+    });
+    await page.evaluate(() => FirmaGame.openStation('rest'));
+    await page.locator('#modal[open]').waitFor();
+    await page.locator('[data-action="rest-sit"]').click();
+    await page.waitForFunction(() => FirmaGame.seated === 'rest', {}, { timeout: 10000 });
+    await page.locator('#office-toggle').click();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() => FirmaUI.state.office.status === 'closing');
+    assert.equal(
+      await page.evaluate(
+        () =>
+          FirmaUI.state.agents.filter(
+            (a) => FirmaEngine.presence(FirmaUI.state, a.id) === 'leaving',
+          ).length,
+      ),
+      1,
+    );
+    const tasks = await page.evaluate(() => FirmaUI.state.tasks.map((t) => t.progress));
+    await page.waitForFunction(() => FirmaUI.state.office.cursor >= 1, {}, { timeout: 8000 });
+    assert.equal(await page.evaluate(() => FirmaEngine.presence(FirmaUI.state, '1')), 'outside');
+    assert.ok(await page.evaluate(() => FirmaGame.agentPositions.length < 6));
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-closing-office.png'),
+      fullPage: true,
+    });
+    await page.evaluate(async () => {
+      const s = FirmaEngine.migrate(FirmaUI.state);
+      FirmaEngine.advanceOffice(
+        s,
+        (s.office.order.length - 1 - s.office.cursor) * FirmaEngine.shiftSeconds -
+          s.office.progress,
+      );
+      await FirmaAccess.command('restore', { state: s });
+      await FirmaUI.sync();
+    });
+    await page.waitForFunction(
+      () => FirmaUI.state.office.status === 'closed',
+      {},
+      { timeout: 8000 },
+    );
+    assert.equal(await page.evaluate(() => FirmaGame.agentPositions.length), 0);
+    assert.equal(await page.evaluate(() => FirmaGame.leaderPosition), null);
+    assert.deepEqual(await page.evaluate(() => FirmaUI.state.tasks.map((t) => t.progress)), tasks);
+    await page.reload();
+    await page.waitForFunction(() => window.FirmaGame);
+    assert.equal(await page.evaluate(() => FirmaUI.state.office.status), 'closed');
+    assert.equal(await page.evaluate(() => FirmaGame.agentPositions.length), 0);
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-closed-office.png'),
+      fullPage: true,
+    });
+    await page.locator('#office-toggle').click();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() => FirmaUI.state.office.status === 'opening');
+    assert.equal(await page.evaluate(() => FirmaUI.state.office.order[0]), 'codex-leader');
+    await page.waitForFunction(() => FirmaUI.state.office.cursor >= 1, {}, { timeout: 8000 });
+    assert.ok(await page.evaluate(() => FirmaGame.agentPositions.length <= 1));
+    await page.evaluate(async () => {
+      const s = FirmaEngine.migrate(FirmaUI.state);
+      FirmaEngine.advanceOffice(
+        s,
+        (s.office.order.length - 1 - s.office.cursor) * FirmaEngine.shiftSeconds -
+          s.office.progress,
+      );
+      await FirmaAccess.command('restore', { state: s });
+      await FirmaUI.sync();
+    });
+    await page.waitForFunction(
+      () => FirmaUI.state.office.status === 'open' && FirmaGame.agentPositions.length === 6,
+      {},
+      { timeout: 8000 },
+    );
+    assert.equal(fake.calls.length, 0);
+    const mobile = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    mobile.on('pageerror', (e) => errors.push(e.message));
+    await mobile.goto(url);
+    await mobile.waitForFunction(() => window.FirmaGame);
+    await mobile.locator('#office-toggle').waitFor({ state: 'visible' });
+    assert.equal(
+      await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await mobile.screenshot({
+      path: path.resolve('artifacts/firma-office-life-mobile.png'),
+      fullPage: true,
+    });
+    const guest = await browser.newContext(),
+      visitor = await guest.newPage();
+    await visitor.goto(url);
+    await visitor.locator('#visit-office').click();
+    await visitor.waitForFunction(() => window.FirmaGame);
+    assert.equal(await visitor.locator('#office-toggle').isVisible(), false);
+    await guest.close();
+    assert.deepEqual(errors, []);
+    console.log(
+      'PASS: seated employees, local conversation, reachable coffee corner, serialized exits/entries, persistent closed office, preserved tasks, reopening, mobile control and visitor limits; no AI calls or browser errors.',
+    );
+  } finally {
+    await browser?.close();
+    server.close();
+  }
+})().catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});

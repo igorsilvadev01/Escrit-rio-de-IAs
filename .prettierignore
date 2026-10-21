@@ -1,0 +1,8 @@
+node_modules/
+.firma-private/
+projects/
+artifacts/
+assets/editor.js
+assets/editor.js.map
+coverage/
+package-lock.json

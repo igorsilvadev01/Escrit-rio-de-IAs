@@ -1,49 +1,222 @@
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const {chromium}=require(process.env.FIRMA_PLAYWRIGHT||'playwright'),{fakeProviders}=require('./ai-fixtures.cjs');
-const fake=fakeProviders(),server=require('./browser-server.cjs').office(fake);
-(async()=>{let browser;const errors=[];try{
-  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
-  browser=await chromium.launch({headless:true,...(process.env.FIRMA_BROWSER?{executablePath:process.env.FIRMA_BROWSER}:{})});await server.authorizeBrowser(browser);
-  const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url);await page.locator('#modal[open]').waitFor();await page.locator('#modal-submit').click();await page.waitForFunction(()=>window.FirmaStudio&&!document.getElementById('modal').open);
-  await page.evaluate(async()=>{await FirmaAccess.command('simulation',{paused:true});await FirmaUI.sync();});
-  await page.locator('#management-button').click();await page.locator('#manage-live').waitFor();
-  assert.equal(await page.locator('.manage-nav [aria-current="page"]').innerText(),'Visão geral');
-  fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:path.resolve('artifacts/firma-management-overview.png'),fullPage:true});
-  await page.locator('.manage-heading [data-manage-new]').click();
-  assert.equal(await page.locator('.manage-advanced').getAttribute('open'),null);
-  await page.locator('[name="title"]').fill('Plano simples de lançamento');await page.locator('[name="description"]').fill('Pesquisar público e concorrentes. Entregar três ideias verificáveis.');
-  await page.locator('#quick-template').selectOption('development');
-  assert.equal(await page.locator('[name="title"]').inputValue(),'Plano simples de lançamento');
-  assert.equal(await page.locator('#quick-agent option:checked').textContent().then(v=>v.includes('Theo')),true);
-  await page.locator('#quick-template').selectOption('research');await page.locator('#modal-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#manage-live')&&FirmaUI.state.tasks.some(t=>t.title==='Plano simples de lançamento'));
-  assert.equal(await page.locator('.manage-nav [aria-current="page"]').innerText(),'Tarefas');
-  await page.locator('#manage-search').fill('Plano simples');await page.locator('#manage-search').press('Enter');await page.waitForTimeout(3300);
-  assert.equal(await page.locator('#modal').evaluate(d=>d.open),true);
-  assert.equal(await page.locator('#manage-search').inputValue(),'Plano simples');assert.equal(await page.locator('.manage-task').count(),1);
-  const id=await page.evaluate(()=>FirmaUI.state.tasks.find(t=>t.title==='Plano simples de lançamento').id);
-  await page.locator('.manage-task').click();await page.locator('summary').filter({hasText:'Responsável e prioridade'}).click();await page.locator('[name="priority"]').selectOption('high');await page.locator('#modal-submit').click();
-  await page.waitForFunction(id=>document.querySelector('#manage-live')&&FirmaUI.state.tasks.find(t=>t.id===id).priority==='high',id);
-  // Put a simulated deliverable into review through the isolated test office.
-  await page.evaluate(async id=>{const s=FirmaEngine.migrate(FirmaUI.state),t=s.tasks.find(t=>t.id===id);t.progress=100;t.status='review';t.result='# Plano de lançamento\n\nTrês propostas para avaliação humana.';await FirmaAccess.command('restore',{state:s});await FirmaUI.sync();},id);
-  await page.locator('.manage-nav [data-manage="reviews"]').click();await page.locator(`[data-task="${id}"]`).click();
-  assert.match(await page.locator('.manage-delivery').innerText(),/Três propostas/);
-  await page.locator('summary').filter({hasText:'Pedir ajustes à equipe'}).click();await page.locator('#revision-feedback').fill('Inclua fontes para cada proposta.');await page.locator('[data-revise]').click();
-  await page.waitForFunction(id=>document.querySelector('#manage-live')&&FirmaUI.state.tasks.find(t=>t.id===id).revisionCount===1,id);
-  assert.match(await page.locator('#manage-live').innerText(),/Nenhuma revisão pendente/);
-  await page.evaluate(async id=>{const s=FirmaEngine.migrate(FirmaUI.state),t=s.tasks.find(t=>t.id===id);t.progress=100;t.status='review';t.result='# Plano revisado\n\nFontes e propostas para aprovação.';await FirmaAccess.command('restore',{state:s});await FirmaUI.sync();},id);
-  await page.locator('.manage-nav [data-manage="reviews"]').click();await page.screenshot({path:path.resolve('artifacts/firma-management-reviews.png'),fullPage:true});await page.locator(`[data-task="${id}"]`).click();await page.locator('#modal-submit').click();
-  await page.waitForFunction(id=>document.querySelector('#manage-live')&&FirmaUI.state.tasks.find(t=>t.id===id).status==='done',id);
-  await page.locator('.manage-nav [data-manage="team"]').click();await page.locator('#manage-search').fill('Theo');assert.equal(await page.locator('.manage-person').count(),1);await page.locator('.manage-person').click();await page.locator('[data-assign]').click();assert.match(await page.locator('#quick-agent option:checked').textContent(),/Theo/);
-  await page.locator('[data-manage="team"]').click();await page.locator('.manage-nav [data-manage="tools"]').click();await page.locator('[data-action="settings"]').click();assert.equal(await page.locator('[name="company"]').isVisible(),true);await page.locator('#close-modal').click();
-  await page.evaluate(()=>FirmaUI.interact({id:'development'}));assert.equal(await page.locator('#manage-department').inputValue(),'development');await page.locator('.manage-heading [data-manage-new]').click();assert.equal(await page.locator('#quick-template').inputValue(),'development');await page.locator('#close-modal').click();
-  await page.locator('#management-button').click();await page.locator('.manage-heading [data-manage-new]').click();await page.locator('[name="title"]').fill('Ordem real ainda não autorizada');await page.locator('[name="description"]').fill('Apenas preparar. Não enviar automaticamente.');await page.locator('[name="executionMode"]').selectOption('real');await page.locator('#modal-submit').click();
-  await page.waitForFunction(()=>document.getElementById('modal-title').textContent==='Confirmar ordem para IA real');assert.equal(await page.locator('[name="confirm"]').isChecked(),false);assert.equal(fake.calls.length,0);await page.locator('#close-modal').click();
-  await page.reload();await page.waitForFunction(()=>window.FirmaUI);assert.equal(await page.evaluate(id=>FirmaUI.state.tasks.find(t=>t.id===id).status,id),'done');
-  const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(url);await mobile.waitForFunction(()=>window.FirmaUI);await mobile.locator('#management-button').click();await mobile.locator('.manage-nav [data-manage="tasks"]').click();
-  assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.equal(await mobile.evaluate(()=>{const d=document.getElementById('modal');return d.scrollWidth<=d.clientWidth;}),true);
-  await mobile.screenshot({path:path.resolve('artifacts/firma-management-mobile.png'),fullPage:true});await mobile.locator('.manage-heading [data-manage-new]').click();await mobile.locator('[name="title"]').fill('Tarefa mobile');await mobile.locator('[name="description"]').fill('Criar pelo celular.');await mobile.locator('#modal-submit').click();await mobile.waitForFunction(()=>FirmaUI.state.tasks.some(t=>t.title==='Tarefa mobile'));
-  const context=await browser.newContext(),visitor=await context.newPage();visitor.on('pageerror',e=>errors.push(e.message));await visitor.goto(url);await visitor.locator('#visit-office').click();await visitor.waitForFunction(()=>window.FirmaUI);await visitor.locator('#management-button').click();await visitor.locator('.manage-nav [data-manage="tasks"]').click();assert.equal(await visitor.locator('[data-manage-new], [data-manage="tools"]').count(),0);assert.equal(await visitor.locator('#manage-live').innerText().then(t=>t.includes('Plano simples')),false);await context.close();
-  assert.equal(fake.calls.length,0);assert.deepEqual(errors,[]);console.log('PASS: create/search/assign/revise/approve, persistence, team delegation, settings, responsive management, read-only visitor and zero AI calls.');
-}finally{await browser?.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+const assert = require('node:assert/strict'),
+  fs = require('node:fs'),
+  path = require('node:path');
+const { chromium } = require(process.env.FIRMA_PLAYWRIGHT || 'playwright'),
+  { fakeProviders } = require('./ai-fixtures.cjs');
+const fake = fakeProviders(),
+  server = require('./browser-server.cjs').office(fake);
+(async () => {
+  let browser;
+  const errors = [];
+  try {
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    const url = 'http://127.0.0.1:' + server.address().port;
+    browser = await chromium.launch({
+      headless: true,
+      ...(process.env.FIRMA_BROWSER ? { executablePath: process.env.FIRMA_BROWSER } : {}),
+    });
+    await server.authorizeBrowser(browser);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(url);
+    await page.locator('#modal[open]').waitFor();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(() => window.FirmaStudio && !document.getElementById('modal').open);
+    await page.evaluate(async () => {
+      await FirmaAccess.command('simulation', { paused: true });
+      await FirmaUI.sync();
+    });
+    await page.locator('#management-button').click();
+    await page.locator('#manage-live').waitFor();
+    assert.equal(
+      await page.locator('.manage-nav [aria-current="page"]').innerText(),
+      'Visão geral',
+    );
+    fs.mkdirSync('artifacts', { recursive: true });
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-management-overview.png'),
+      fullPage: true,
+    });
+    await page.locator('.manage-heading [data-manage-new]').click();
+    assert.equal(await page.locator('.manage-advanced').getAttribute('open'), null);
+    await page.locator('[name="title"]').fill('Plano simples de lançamento');
+    await page
+      .locator('[name="description"]')
+      .fill('Pesquisar público e concorrentes. Entregar três ideias verificáveis.');
+    await page.locator('#quick-template').selectOption('development');
+    assert.equal(await page.locator('[name="title"]').inputValue(), 'Plano simples de lançamento');
+    assert.equal(
+      await page
+        .locator('#quick-agent option:checked')
+        .textContent()
+        .then((v) => v.includes('Theo')),
+      true,
+    );
+    await page.locator('#quick-template').selectOption('research');
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('#manage-live') &&
+        FirmaUI.state.tasks.some((t) => t.title === 'Plano simples de lançamento'),
+    );
+    assert.equal(await page.locator('.manage-nav [aria-current="page"]').innerText(), 'Tarefas');
+    await page.locator('#manage-search').fill('Plano simples');
+    await page.locator('#manage-search').press('Enter');
+    await page.waitForTimeout(3300);
+    assert.equal(await page.locator('#modal').evaluate((d) => d.open), true);
+    assert.equal(await page.locator('#manage-search').inputValue(), 'Plano simples');
+    assert.equal(await page.locator('.manage-task').count(), 1);
+    const id = await page.evaluate(
+      () => FirmaUI.state.tasks.find((t) => t.title === 'Plano simples de lançamento').id,
+    );
+    await page.locator('.manage-task').click();
+    await page.locator('summary').filter({ hasText: 'Responsável e prioridade' }).click();
+    await page.locator('[name="priority"]').selectOption('high');
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(
+      (id) =>
+        document.querySelector('#manage-live') &&
+        FirmaUI.state.tasks.find((t) => t.id === id).priority === 'high',
+      id,
+    );
+    // Put a simulated deliverable into review through the isolated test office.
+    await page.evaluate(async (id) => {
+      const s = FirmaEngine.migrate(FirmaUI.state),
+        t = s.tasks.find((t) => t.id === id);
+      t.progress = 100;
+      t.status = 'review';
+      t.result = '# Plano de lançamento\n\nTrês propostas para avaliação humana.';
+      await FirmaAccess.command('restore', { state: s });
+      await FirmaUI.sync();
+    }, id);
+    await page.locator('.manage-nav [data-manage="reviews"]').click();
+    await page.locator(`[data-task="${id}"]`).click();
+    assert.match(await page.locator('.manage-delivery').innerText(), /Três propostas/);
+    await page.locator('summary').filter({ hasText: 'Pedir ajustes à equipe' }).click();
+    await page.locator('#revision-feedback').fill('Inclua fontes para cada proposta.');
+    await page.locator('[data-revise]').click();
+    await page.waitForFunction(
+      (id) =>
+        document.querySelector('#manage-live') &&
+        FirmaUI.state.tasks.find((t) => t.id === id).revisionCount === 1,
+      id,
+    );
+    assert.match(await page.locator('#manage-live').innerText(), /Nenhuma revisão pendente/);
+    await page.evaluate(async (id) => {
+      const s = FirmaEngine.migrate(FirmaUI.state),
+        t = s.tasks.find((t) => t.id === id);
+      t.progress = 100;
+      t.status = 'review';
+      t.result = '# Plano revisado\n\nFontes e propostas para aprovação.';
+      await FirmaAccess.command('restore', { state: s });
+      await FirmaUI.sync();
+    }, id);
+    await page.locator('.manage-nav [data-manage="reviews"]').click();
+    await page.screenshot({
+      path: path.resolve('artifacts/firma-management-reviews.png'),
+      fullPage: true,
+    });
+    await page.locator(`[data-task="${id}"]`).click();
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(
+      (id) =>
+        document.querySelector('#manage-live') &&
+        FirmaUI.state.tasks.find((t) => t.id === id).status === 'done',
+      id,
+    );
+    await page.locator('.manage-nav [data-manage="team"]').click();
+    await page.locator('#manage-search').fill('Theo');
+    assert.equal(await page.locator('.manage-person').count(), 1);
+    await page.locator('.manage-person').click();
+    await page.locator('[data-assign]').click();
+    assert.match(await page.locator('#quick-agent option:checked').textContent(), /Theo/);
+    await page.locator('[data-manage="team"]').click();
+    await page.locator('.manage-nav [data-manage="tools"]').click();
+    await page.locator('[data-action="settings"]').click();
+    assert.equal(await page.locator('[name="company"]').isVisible(), true);
+    await page.locator('#close-modal').click();
+    await page.evaluate(() => FirmaUI.interact({ id: 'development' }));
+    assert.equal(await page.locator('#manage-department').inputValue(), 'development');
+    await page.locator('.manage-heading [data-manage-new]').click();
+    assert.equal(await page.locator('#quick-template').inputValue(), 'development');
+    await page.locator('#close-modal').click();
+    await page.locator('#management-button').click();
+    await page.locator('.manage-heading [data-manage-new]').click();
+    await page.locator('[name="title"]').fill('Ordem real ainda não autorizada');
+    await page.locator('[name="description"]').fill('Apenas preparar. Não enviar automaticamente.');
+    await page.locator('[name="executionMode"]').selectOption('real');
+    await page.locator('#modal-submit').click();
+    await page.waitForFunction(
+      () => document.getElementById('modal-title').textContent === 'Confirmar ordem para IA real',
+    );
+    assert.equal(await page.locator('[name="confirm"]').isChecked(), false);
+    assert.equal(fake.calls.length, 0);
+    await page.locator('#close-modal').click();
+    await page.reload();
+    await page.waitForFunction(() => window.FirmaUI);
+    assert.equal(
+      await page.evaluate((id) => FirmaUI.state.tasks.find((t) => t.id === id).status, id),
+      'done',
+    );
+    const mobile = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    mobile.on('pageerror', (e) => errors.push(e.message));
+    await mobile.goto(url);
+    await mobile.waitForFunction(() => window.FirmaUI);
+    await mobile.locator('#management-button').click();
+    await mobile.locator('.manage-nav [data-manage="tasks"]').click();
+    assert.equal(
+      await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    assert.equal(
+      await mobile.evaluate(() => {
+        const d = document.getElementById('modal');
+        return d.scrollWidth <= d.clientWidth;
+      }),
+      true,
+    );
+    await mobile.screenshot({
+      path: path.resolve('artifacts/firma-management-mobile.png'),
+      fullPage: true,
+    });
+    await mobile.locator('.manage-heading [data-manage-new]').click();
+    await mobile.locator('[name="title"]').fill('Tarefa mobile');
+    await mobile.locator('[name="description"]').fill('Criar pelo celular.');
+    await mobile.locator('#modal-submit').click();
+    await mobile.waitForFunction(() =>
+      FirmaUI.state.tasks.some((t) => t.title === 'Tarefa mobile'),
+    );
+    const context = await browser.newContext(),
+      visitor = await context.newPage();
+    visitor.on('pageerror', (e) => errors.push(e.message));
+    await visitor.goto(url);
+    await visitor.locator('#visit-office').click();
+    await visitor.waitForFunction(() => window.FirmaUI);
+    await visitor.locator('#management-button').click();
+    await visitor.locator('.manage-nav [data-manage="tasks"]').click();
+    assert.equal(await visitor.locator('[data-manage-new], [data-manage="tools"]').count(), 0);
+    assert.equal(
+      await visitor
+        .locator('#manage-live')
+        .innerText()
+        .then((t) => t.includes('Plano simples')),
+      false,
+    );
+    await context.close();
+    assert.equal(fake.calls.length, 0);
+    assert.deepEqual(errors, []);
+    console.log(
+      'PASS: create/search/assign/revise/approve, persistence, team delegation, settings, responsive management, read-only visitor and zero AI calls.',
+    );
+  } finally {
+    await browser?.close();
+    server.close();
+  }
+})().catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});

@@ -1,0 +1,26 @@
+[Unit]
+Description=Firma - escritorio de IAs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=firma
+Group=firma
+WorkingDirectory=/opt/firma
+EnvironmentFile=/etc/firma/firma.env
+ExecStart=/usr/bin/node /opt/firma/server.cjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/firma
+UMask=0077
+MemoryMax=1G
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

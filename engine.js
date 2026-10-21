@@ -1,123 +1,911 @@
 /* Firma's deterministic simulator. No network calls or model-generated output. */
-(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.FirmaEngine=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.FirmaEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const officeLayout={id:'open-v5',scale:1,spawn:{x:270,y:216},bounds:{left:24,right:696,top:24,bottom:456}};
-  const colors=['#57d8ff','#b9b0d8','#d4ae83','#8dbfc0','#cf9ba4','#a8b9d5'];
-  const stages={queued:'Na fila',working:'Em produção',blocked:'Bloqueada',review:'Sua revisão',done:'Aprovada'};
-  const departments={
-    planning:{name:'Planejar',number:'01',color:'#57d8ff',description:'Transformar ideias em escopo, pesquisa e decisões.',template:'planning'},
-    development:{name:'Desenvolver',number:'02',color:'#6c9cff',description:'Construir a solução a partir do plano aprovado.',template:'development'},
-    testing:{name:'Testar',number:'03',color:'#ffad66',description:'Conferir critérios de aceite e registrar limitações.',template:'testing'},
-    publishing:{name:'Postar',number:'04',color:'#c795ff',description:'Preparar conteúdo e checklist de publicação.',template:'publishing'}
+  const officeLayout = {
+    id: 'open-v5',
+    scale: 1,
+    spawn: { x: 270, y: 216 },
+    bounds: { left: 24, right: 696, top: 24, bottom: 456 },
   };
-  function departmentOf(agent){if(Object.hasOwn(departments,agent.department))return agent.department;const role=String(agent.role||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();return /teste|testador|qualidade|qa|analista|dados/.test(role)?'testing':/conteudo|marketing|social|publica/.test(role)?'publishing':/desenvolv|program|engenheir|backend|frontend/.test(role)?'development':'planning';}
-  const templates={
-    research:{name:'Pesquisar uma ideia',icon:'⌕',category:'PESQUISA',role:'Pesquisadora',title:'Pesquisar uma oportunidade de produto',description:'Público-alvo, problema, alternativas existentes e perguntas que precisamos validar.',output:'Relatório em Markdown com fontes verificáveis e hipóteses separadas de fatos.',criteria:'Apresentar 3 alternativas, riscos e próximos passos. Não inventar fontes.',steps:['Definir perguntas e escopo','Levantar evidências e alternativas','Sintetizar achados e limitações']},
-    development:{name:'Construir uma solução',icon:'⌘',category:'DESENVOLVIMENTO',role:'Desenvolvedor',title:'Planejar e desenvolver uma funcionalidade',description:'Descreva o comportamento esperado, entradas, saídas e restrições técnicas.',output:'Plano técnico, código e instruções de validação.',criteria:'Explicar como executar e testar. Identificar dependências e limitações.',steps:['Entender requisitos e dependências','Implementar a solução','Validar os critérios de aceite']},
-    design:{name:'Desenhar uma experiência',icon:'◇',category:'DESIGN',role:'Designer',title:'Criar uma experiência simples e acessível',description:'Descreva quem usa, o objetivo principal e os passos da experiência.',output:'Fluxo de uso, proposta visual e estados da interface.',criteria:'Incluir estados vazio, carregando e erro; considerar teclado e telas pequenas.',steps:['Mapear o problema e o usuário','Explorar a solução visual','Revisar usabilidade e acessibilidade']},
-    content:{name:'Criar conteúdo',icon:'✎',category:'CONTEÚDO',role:'conteúdo',title:'Preparar conteúdo para um lançamento',description:'Informe o público, canal, mensagem principal e tom de voz.',output:'Rascunho de conteúdo em Markdown com variações de título.',criteria:'Incluir chamada para ação; evitar afirmações sem evidência.',steps:['Organizar briefing e referências','Produzir um primeiro rascunho','Revisar clareza e tom de voz']},
-    analysis:{name:'Analisar informações',icon:'▥',category:'ANÁLISE',role:'Analista',title:'Transformar informações em decisões',description:'Descreva os dados disponíveis, a pergunta e a decisão que precisa tomar.',output:'Resumo analítico com metodologia, limitações e recomendações.',criteria:'Separar observações de inferências e explicar dados ausentes.',steps:['Conferir os dados de entrada','Explorar padrões e inconsistências','Preparar recomendações e limites']}
+  const colors = ['#57d8ff', '#b9b0d8', '#d4ae83', '#8dbfc0', '#cf9ba4', '#a8b9d5'];
+  const stages = {
+    queued: 'Na fila',
+    working: 'Em produção',
+    blocked: 'Bloqueada',
+    review: 'Sua revisão',
+    done: 'Aprovada',
   };
-  Object.assign(templates,{
-    planning:{name:'Planejar uma entrega',icon:'◇',category:'PLANEJAMENTO',role:'projetos',title:'Definir o plano de uma entrega',description:'Objetivo, público, escopo, restrições e resultado esperado.',output:'Plano com escopo, critérios de aceite e próximos passos.',criteria:'Explicitar o que entra e o que fica fora; listar riscos e decisões.',steps:['Entender o objetivo','Definir escopo e critérios','Preparar o plano para aprovação']},
-    testing:{name:'Testar uma entrega',icon:'✓',category:'TESTES',role:'Analista',title:'Validar uma entrega',description:'Descreva o que será validado, cenários esperados e evidências disponíveis.',output:'Plano e registro de verificação, com resultados simulados explicitamente identificados.',criteria:'Cobrir critérios de aceite, casos de erro e limitações. Não alegar execução real de testes.',steps:['Conferir critérios de aceite','Percorrer cenários na simulação','Registrar limites e solicitar revisão']},
-    publishing:{name:'Preparar uma postagem',icon:'↗',category:'PUBLICAÇÃO',role:'conteúdo',title:'Preparar a divulgação de uma entrega',description:'Público, canal, mensagem, material disponível e chamada para ação.',output:'Rascunho de postagem e checklist de publicação para aprovação humana.',criteria:'Revisar links, mensagem e privacidade. Nenhum conteúdo será postado automaticamente.',steps:['Preparar a mensagem','Revisar material e checklist','Solicitar aprovação da postagem']}
+  const departments = {
+    planning: {
+      name: 'Planejar',
+      number: '01',
+      color: '#57d8ff',
+      description: 'Transformar ideias em escopo, pesquisa e decisões.',
+      template: 'planning',
+    },
+    development: {
+      name: 'Desenvolver',
+      number: '02',
+      color: '#6c9cff',
+      description: 'Construir a solução a partir do plano aprovado.',
+      template: 'development',
+    },
+    testing: {
+      name: 'Testar',
+      number: '03',
+      color: '#ffad66',
+      description: 'Conferir critérios de aceite e registrar limitações.',
+      template: 'testing',
+    },
+    publishing: {
+      name: 'Postar',
+      number: '04',
+      color: '#c795ff',
+      description: 'Preparar conteúdo e checklist de publicação.',
+      template: 'publishing',
+    },
+  };
+  function departmentOf(agent) {
+    if (Object.hasOwn(departments, agent.department)) return agent.department;
+    const role = String(agent.role || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+    return /teste|testador|qualidade|qa|analista|dados/.test(role)
+      ? 'testing'
+      : /conteudo|marketing|social|publica/.test(role)
+        ? 'publishing'
+        : /desenvolv|program|engenheir|backend|frontend/.test(role)
+          ? 'development'
+          : 'planning';
+  }
+  const templates = {
+    research: {
+      name: 'Pesquisar uma ideia',
+      icon: '⌕',
+      category: 'PESQUISA',
+      role: 'Pesquisadora',
+      title: 'Pesquisar uma oportunidade de produto',
+      description:
+        'Público-alvo, problema, alternativas existentes e perguntas que precisamos validar.',
+      output: 'Relatório em Markdown com fontes verificáveis e hipóteses separadas de fatos.',
+      criteria: 'Apresentar 3 alternativas, riscos e próximos passos. Não inventar fontes.',
+      steps: [
+        'Definir perguntas e escopo',
+        'Levantar evidências e alternativas',
+        'Sintetizar achados e limitações',
+      ],
+    },
+    development: {
+      name: 'Construir uma solução',
+      icon: '⌘',
+      category: 'DESENVOLVIMENTO',
+      role: 'Desenvolvedor',
+      title: 'Planejar e desenvolver uma funcionalidade',
+      description: 'Descreva o comportamento esperado, entradas, saídas e restrições técnicas.',
+      output: 'Plano técnico, código e instruções de validação.',
+      criteria: 'Explicar como executar e testar. Identificar dependências e limitações.',
+      steps: [
+        'Entender requisitos e dependências',
+        'Implementar a solução',
+        'Validar os critérios de aceite',
+      ],
+    },
+    design: {
+      name: 'Desenhar uma experiência',
+      icon: '◇',
+      category: 'DESIGN',
+      role: 'Designer',
+      title: 'Criar uma experiência simples e acessível',
+      description: 'Descreva quem usa, o objetivo principal e os passos da experiência.',
+      output: 'Fluxo de uso, proposta visual e estados da interface.',
+      criteria: 'Incluir estados vazio, carregando e erro; considerar teclado e telas pequenas.',
+      steps: [
+        'Mapear o problema e o usuário',
+        'Explorar a solução visual',
+        'Revisar usabilidade e acessibilidade',
+      ],
+    },
+    content: {
+      name: 'Criar conteúdo',
+      icon: '✎',
+      category: 'CONTEÚDO',
+      role: 'conteúdo',
+      title: 'Preparar conteúdo para um lançamento',
+      description: 'Informe o público, canal, mensagem principal e tom de voz.',
+      output: 'Rascunho de conteúdo em Markdown com variações de título.',
+      criteria: 'Incluir chamada para ação; evitar afirmações sem evidência.',
+      steps: [
+        'Organizar briefing e referências',
+        'Produzir um primeiro rascunho',
+        'Revisar clareza e tom de voz',
+      ],
+    },
+    analysis: {
+      name: 'Analisar informações',
+      icon: '▥',
+      category: 'ANÁLISE',
+      role: 'Analista',
+      title: 'Transformar informações em decisões',
+      description: 'Descreva os dados disponíveis, a pergunta e a decisão que precisa tomar.',
+      output: 'Resumo analítico com metodologia, limitações e recomendações.',
+      criteria: 'Separar observações de inferências e explicar dados ausentes.',
+      steps: [
+        'Conferir os dados de entrada',
+        'Explorar padrões e inconsistências',
+        'Preparar recomendações e limites',
+      ],
+    },
+  };
+  Object.assign(templates, {
+    planning: {
+      name: 'Planejar uma entrega',
+      icon: '◇',
+      category: 'PLANEJAMENTO',
+      role: 'projetos',
+      title: 'Definir o plano de uma entrega',
+      description: 'Objetivo, público, escopo, restrições e resultado esperado.',
+      output: 'Plano com escopo, critérios de aceite e próximos passos.',
+      criteria: 'Explicitar o que entra e o que fica fora; listar riscos e decisões.',
+      steps: [
+        'Entender o objetivo',
+        'Definir escopo e critérios',
+        'Preparar o plano para aprovação',
+      ],
+    },
+    testing: {
+      name: 'Testar uma entrega',
+      icon: '✓',
+      category: 'TESTES',
+      role: 'Analista',
+      title: 'Validar uma entrega',
+      description: 'Descreva o que será validado, cenários esperados e evidências disponíveis.',
+      output:
+        'Plano e registro de verificação, com resultados simulados explicitamente identificados.',
+      criteria:
+        'Cobrir critérios de aceite, casos de erro e limitações. Não alegar execução real de testes.',
+      steps: [
+        'Conferir critérios de aceite',
+        'Percorrer cenários na simulação',
+        'Registrar limites e solicitar revisão',
+      ],
+    },
+    publishing: {
+      name: 'Preparar uma postagem',
+      icon: '↗',
+      category: 'PUBLICAÇÃO',
+      role: 'conteúdo',
+      title: 'Preparar a divulgação de uma entrega',
+      description: 'Público, canal, mensagem, material disponível e chamada para ação.',
+      output: 'Rascunho de postagem e checklist de publicação para aprovação humana.',
+      criteria:
+        'Revisar links, mensagem e privacidade. Nenhum conteúdo será postado automaticamente.',
+      steps: [
+        'Preparar a mensagem',
+        'Revisar material e checklist',
+        'Solicitar aprovação da postagem',
+      ],
+    },
   });
-  for(const [key,template] of Object.entries(templates))template.department=key==='development'?'development':['testing','analysis'].includes(key)?'testing':['publishing','content'].includes(key)?'publishing':'planning';
-  const taskDepartment=task=>(templates[task.template]||templates.research).department;
-  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-  const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
-  const string=(v,f='',max=1000)=>typeof v==='string'?v.slice(0,max):f;
-  const shiftSeconds=5;
-  function migrateOffice(raw,agents){
-    const statuses=['open','closing','closed','opening'],status=statuses.includes(raw?.status)?raw.status:'open';
-    const valid=new Set([...agents.map(a=>a.id),'codex-leader']);
-    const order=Array.isArray(raw?.order)?[...new Set(raw.order.filter(id=>valid.has(id)))]:[];
-    for(const id of valid)if(!order.includes(id))order.push(id);
-    return{status,clock:Number.isFinite(raw?.clock)?Math.max(0,raw.clock):0,order,cursor:Math.min(order.length,Math.max(0,Math.floor(Number(raw?.cursor)||0))),progress:Math.min(shiftSeconds,Math.max(0,Number(raw?.progress)||0))};
+  for (const [key, template] of Object.entries(templates))
+    template.department =
+      key === 'development'
+        ? 'development'
+        : ['testing', 'analysis'].includes(key)
+          ? 'testing'
+          : ['publishing', 'content'].includes(key)
+            ? 'publishing'
+            : 'planning';
+  const taskDepartment = (task) => (templates[task.template] || templates.research).department;
+  const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+  const uid = () =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  const string = (v, f = '', max = 1000) => (typeof v === 'string' ? v.slice(0, max) : f);
+  const shiftSeconds = 5;
+  function migrateOffice(raw, agents) {
+    const statuses = ['open', 'closing', 'closed', 'opening'],
+      status = statuses.includes(raw?.status) ? raw.status : 'open';
+    const valid = new Set([...agents.map((a) => a.id), 'codex-leader']);
+    const order = Array.isArray(raw?.order)
+      ? [...new Set(raw.order.filter((id) => valid.has(id)))]
+      : [];
+    for (const id of valid) if (!order.includes(id)) order.push(id);
+    return {
+      status,
+      clock: Number.isFinite(raw?.clock) ? Math.max(0, raw.clock) : 0,
+      order,
+      cursor: Math.min(order.length, Math.max(0, Math.floor(Number(raw?.cursor) || 0))),
+      progress: Math.min(shiftSeconds, Math.max(0, Number(raw?.progress) || 0)),
+    };
   }
-  function officeOpen(s){return !s.office||s.office.status==='open';}
-  function presence(s,id){const o=s.office;if(!o||o.status==='open')return'inside';if(o.status==='closed')return'outside';const i=o.order.indexOf(id);if(i<0)return o.status==='closing'?'inside':'outside';if(i===o.cursor)return o.status==='closing'?'leaving':'entering';return o.status==='closing'?(i<o.cursor?'outside':'inside'):(i<o.cursor?'inside':'outside');}
-  function changeOffice(s,status){
-    if(!['open','closed'].includes(status))throw Error('Estado do escritório inválido.');
-    if(['closing','opening'].includes(s.office?.status))throw Error('Aguarde a equipe terminar de entrar ou sair.');
-    if((status==='open'&&officeOpen(s))||(status==='closed'&&s.office?.status==='closed'))return;
-    s.office={...migrateOffice(s.office,s.agents),status:status==='closed'?'closing':'opening',order:status==='closed'?[...s.agents.map(a=>a.id),'codex-leader']:['codex-leader',...s.agents.map(a=>a.id)],cursor:0,progress:0};
-    s.assembly={active:false};event(s,'Você',status==='closed'?'encerrou o expediente. A equipe sairá um por um.':'abriu o escritório. A equipe está chegando.');reconcile(s);
+  function officeOpen(s) {
+    return !s.office || s.office.status === 'open';
   }
-  function advanceOffice(s,dt){
-    if(!Number.isFinite(dt)||dt<=0)return;s.office??=migrateOffice(null,s.agents);const o=s.office;o.clock+=dt;
-    if(!['closing','opening'].includes(o.status))return;
-    o.progress+=dt;
-    while(o.progress>=shiftSeconds&&o.cursor<o.order.length){o.progress-=shiftSeconds;const id=o.order[o.cursor++],name=id==='codex-leader'?'Codex':s.agents.find(a=>a.id===id)?.name||'Colega';event(s,name,o.status==='closing'?'saiu do escritório. Até amanhã!':'chegou e foi para sua mesa.');}
-    if(o.cursor>=o.order.length){o.status=o.status==='closing'?'closed':'open';o.progress=0;event(s,'Firma',o.status==='closed'?'escritório fechado. Missões preservadas para o próximo expediente.':'equipe a postos. Bom trabalho!');reconcile(s);}
+  function presence(s, id) {
+    const o = s.office;
+    if (!o || o.status === 'open') return 'inside';
+    if (o.status === 'closed') return 'outside';
+    const i = o.order.indexOf(id);
+    if (i < 0) return o.status === 'closing' ? 'inside' : 'outside';
+    if (i === o.cursor) return o.status === 'closing' ? 'leaving' : 'entering';
+    return o.status === 'closing'
+      ? i < o.cursor
+        ? 'outside'
+        : 'inside'
+      : i < o.cursor
+        ? 'inside'
+        : 'outside';
   }
-  function routine(s,a){
-    const p=presence(s,a.id);if(p!=='inside')return p;
-    if(!officeOpen(s)||s.assembly?.active)return'desk';
-    const rests=s.agents.filter(a=>a.rest);if(a.rest)return rests.findIndex(r=>r.id===a.id)<3?'rest':'desk';
-    const clock=s.office?.clock||0,phase=clock%60,first=Math.floor(clock/60)%s.agents.length,index=s.agents.indexOf(a);
-    const busy=s.tasks.some(t=>t.agent===a.id&&t.status==='working');
-    if(!busy&&((index===first&&phase>=15&&phase<29)||(index===(first+1)%s.agents.length&&phase>=19&&phase<32)))return'coffee';
-    return'desk';
+  function changeOffice(s, status) {
+    if (!['open', 'closed'].includes(status)) throw Error('Estado do escritório inválido.');
+    if (['closing', 'opening'].includes(s.office?.status))
+      throw Error('Aguarde a equipe terminar de entrar ou sair.');
+    if (
+      (status === 'open' && officeOpen(s)) ||
+      (status === 'closed' && s.office?.status === 'closed')
+    )
+      return;
+    s.office = {
+      ...migrateOffice(s.office, s.agents),
+      status: status === 'closed' ? 'closing' : 'opening',
+      order:
+        status === 'closed'
+          ? [...s.agents.map((a) => a.id), 'codex-leader']
+          : ['codex-leader', ...s.agents.map((a) => a.id)],
+      cursor: 0,
+      progress: 0,
+    };
+    s.assembly = { active: false };
+    event(
+      s,
+      'Você',
+      status === 'closed'
+        ? 'encerrou o expediente. A equipe sairá um por um.'
+        : 'abriu o escritório. A equipe está chegando.',
+    );
+    reconcile(s);
   }
-  function dialogue(s){
-    if(['closing','opening'].includes(s.office?.status)){const id=s.office.order[s.office.cursor];return id?[{id,text:s.office.status==='closing'?'Até amanhã, pessoal!':'Bom dia! Vamos começar?',kind:'simulation'}]:[];}
-    if(!officeOpen(s)||s.agents.length<2||s.assembly?.active)return[];
-    const clock=s.office?.clock||0,slot=Math.floor(clock/14),phase=clock%14;if(phase>9)return[];
-    const activeAgent=s.agents[slot%s.agents.length],attention=s.tasks.find(t=>t.agent===activeAgent.id&&t.status==='review')||s.tasks.find(t=>t.agent===activeAgent.id&&t.execution?.error)||s.tasks.find(t=>t.agent===activeAgent.id&&t.status==='blocked');if(attention)return [{id:activeAgent.id,text:attention.status==='review'?(attention.execution?.kind==='real'||attention.validation?'Uma entrega espera sua revisão.':'Simulação pronta para revisar.'):attention.execution?.error?'Preciso revisar uma falha.':'Aguardo a tarefa anterior.',kind:'work',taskId:attention.id}];if(s.preferences?.social===false)return [];
-    const first=slot%s.agents.length,second=(first+1)%s.agents.length,a=s.agents[first],b=s.agents[second];
-    const pairs=[['Bom dia! Café antes de começar?','Bora. Depois organizamos as ideias.'],['Como está a sua parte?','Estou cuidando dos detalhes.'],['Vamos fazer uma pausa curta?','Boa! Já já volto para a mesa.'],['Tem uma ideia nova por aí?','Tenho! Vou preparar um rascunho.'],['Mais um passo de cada vez.','Combinado. Vamos caprichar!']];
-    const lines=pairs[slot%pairs.length];return phase<4?[{id:a.id,text:lines[0],kind:'simulation'}]:[{id:b.id,text:lines[1],kind:'simulation'}];
+  function advanceOffice(s, dt) {
+    if (!Number.isFinite(dt) || dt <= 0) return;
+    s.office ??= migrateOffice(null, s.agents);
+    const o = s.office;
+    o.clock += dt;
+    if (!['closing', 'opening'].includes(o.status)) return;
+    o.progress += dt;
+    while (o.progress >= shiftSeconds && o.cursor < o.order.length) {
+      o.progress -= shiftSeconds;
+      const id = o.order[o.cursor++],
+        name =
+          id === 'codex-leader' ? 'Codex' : s.agents.find((a) => a.id === id)?.name || 'Colega';
+      event(
+        s,
+        name,
+        o.status === 'closing' ? 'saiu do escritório. Até amanhã!' : 'chegou e foi para sua mesa.',
+      );
+    }
+    if (o.cursor >= o.order.length) {
+      o.status = o.status === 'closing' ? 'closed' : 'open';
+      o.progress = 0;
+      event(
+        s,
+        'Firma',
+        o.status === 'closed'
+          ? 'escritório fechado. Missões preservadas para o próximo expediente.'
+          : 'equipe a postos. Bom trabalho!',
+      );
+      reconcile(s);
+    }
   }
-  function create(){return migrate({agents:[{id:1,name:'Atlas',role:'Líder de projetos'},{id:2,name:'Luna',role:'Designer de produto'},{id:3,name:'Theo',role:'Desenvolvedor'},{id:4,name:'Sofia',role:'Pesquisadora'},{id:5,name:'Oliver',role:'Estrategista de conteúdo'},{id:6,name:'Maya',role:'Analista de dados'}],tasks:[{id:1,title:'Investigar a oportunidade',description:'Entender para quem vamos construir nosso primeiro produto.',category:'PESQUISA',agent:4,progress:18,template:'research'},{id:2,title:'Desenhar a primeira experiência',description:'Transformar as descobertas da pesquisa em um fluxo de uso.',category:'DESIGN',agent:2,dependency:1,template:'design'},{id:3,title:'Construir o primeiro protótipo',description:'Implementar a experiência aprovada pelo fundador.',category:'DESENVOLVIMENTO',agent:3,dependency:2,template:'development'}]});}
-  function migrate(raw){
-    if(!raw||!Array.isArray(raw.agents)||!raw.agents.length||!Array.isArray(raw.tasks))throw Error('Backup sem equipe ou tarefas válidas.');
-    const agents=raw.agents.slice(0,24).map((a,i)=>({id:string(String(a.id??uid()),'',80),name:string(a.name,'Agente',25),role:string(a.role,'Assistente',60),department:departmentOf(a),model:string(a.model,'Simulador local',80),color:/^#[\da-f]{6}$/i.test(a.color)?a.color:colors[i%colors.length],rest:!!a.rest,autoRest:!!a.autoRest,energy:clamp(Number(a.energy)||85,1,100),xp:Math.max(0,Number(a.xp)||0),instructions:string(a.instructions,'Trabalhe com clareza, registre limitações e peça revisão antes de encerrar.',2000),meetingUntil:Math.max(0,Number(a.meetingUntil)||0)}));
-    if(new Set(agents.map(a=>a.id)).size!==agents.length)throw Error('IDs de agentes duplicados.');
-    const tasks=raw.tasks.slice(0,500).map(t=>{const template=Object.hasOwn(templates,t.template)?t.template:'research',p=templates[template];return{workRunId:string(t.workRunId,'',80),workStatus:string(t.workStatus,'',40),projectId:string(t.projectId,'firma',80),artifacts:Array.isArray(t.artifacts)?t.artifacts.slice(0,30).filter(x=>typeof x==='string'&&x.length<200):[],validation:t.validation&&typeof t.validation.runId==='string'?{runId:t.validation.runId,passed:!!t.validation.passed}:null,id:string(String(t.id??uid()),'',80),title:string(t.title,'Nova tarefa',100),description:string(t.description,'',3000),category:string(t.category,p.category,40),agent:agents.some(a=>a.id===String(t.agent))?String(t.agent):agents[0].id,template,output:string(t.output,p.output,1500),criteria:string(t.criteria,p.criteria,2000),priority:['high','normal','low'].includes(t.priority)?t.priority:'normal',due:/^\d{4}-\d{2}-\d{2}$/.test(t.due)?t.due:'',dependency:t.dependency?String(t.dependency):'',status:Object.hasOwn(stages,t.status)?t.status:(Number(t.progress)>=100?'done':'queued'),progress:clamp(Number(t.progress)||0,0,100),steps:Array.isArray(t.steps)&&t.steps.length?t.steps.slice(0,8).map(s=>string(s,'Etapa',200)):[...p.steps],result:string(t.result,'',140000),revisions:Array.isArray(t.revisions)?t.revisions.slice(-20).map(r=>({text:string(r.text,'',2000),time:Math.max(0,Number(r.time)||0)})):[],context:string(t.context,'',12000),revisionCount:Math.max(0,Number(t.revisionCount)||0),created:Math.max(0,Number(t.created)||0),execution:t.execution?.kind==='real'?{kind:'real',role:['leadership','planning','development','testing','publishing'].includes(t.execution.role)?t.execution.role:p.department,provider:['codex','claude','gemini','ollama'].includes(t.execution.provider)?t.execution.provider:'codex',model:string(t.execution.model,'',100),status:['pending','running','ready','held','error','completed'].includes(t.execution.status)?t.execution.status:'held',error:string(t.execution.error,'',300),tokens:Math.max(0,Number(t.execution.tokens)||0),completedAt:string(t.execution.completedAt,'',40)}:null};});
-    if(new Set(tasks.map(t=>t.id)).size!==tasks.length)throw Error('IDs de tarefas duplicados.');
-    tasks.forEach(t=>{if(t.dependency&&!tasks.some(d=>d.id===t.dependency))t.dependency='';if(t.status==='done'||t.status==='review')t.progress=100;});
-    const state={version:2,preferences:{social:raw.preferences?.social!==false,reducedMotion:!!raw.preferences?.reducedMotion,decoration:['classic','garden','wood'].includes(raw.preferences?.decoration)?raw.preferences.decoration:'classic'},assembly:{active:raw.assembly?.active===true},agents,tasks,seconds:Math.max(0,Number(raw.seconds)||0),speed:[1,2,4].includes(raw.speed)?raw.speed:1,events:Array.isArray(raw.events)?raw.events.slice(0,80).map(e=>({name:string(e.name,'Equipe',60),text:string(e.text,'',500),time:Math.max(0,Number(e.time)||0)})):[],memory:string(raw.memory,'Somos uma pequena empresa construindo produtos úteis. Priorizamos clareza, acessibilidade e entregas verificáveis.',12000),company:string(raw.company,'Firma HQ',40),onboarded:!!raw.onboarded};
-    state.office=migrateOffice(raw.office,agents);
-    const p=raw.player&&typeof raw.player==='object'?raw.player:{};
-    const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
-    const currentLayout=p.layout===officeLayout.id,knownLayout=currentLayout||['village-v4','compact-v3','compact-v2','rooms-v1'].includes(p.layout);
-    if(!currentLayout)state.assembly={active:false};
+  function routine(s, a) {
+    const p = presence(s, a.id);
+    if (p !== 'inside') return p;
+    if (!officeOpen(s) || s.assembly?.active) return 'desk';
+    const rests = s.agents.filter((a) => a.rest);
+    if (a.rest) return rests.findIndex((r) => r.id === a.id) < 3 ? 'rest' : 'desk';
+    const clock = s.office?.clock || 0,
+      phase = clock % 60,
+      first = Math.floor(clock / 60) % s.agents.length,
+      index = s.agents.indexOf(a);
+    const busy = s.tasks.some((t) => t.agent === a.id && t.status === 'working');
+    if (
+      !busy &&
+      ((index === first && phase >= 15 && phase < 29) ||
+        (index === (first + 1) % s.agents.length && phase >= 19 && phase < 32))
+    )
+      return 'coffee';
+    return 'desk';
+  }
+  function dialogue(s) {
+    if (['closing', 'opening'].includes(s.office?.status)) {
+      const id = s.office.order[s.office.cursor];
+      return id
+        ? [
+            {
+              id,
+              text:
+                s.office.status === 'closing' ? 'Até amanhã, pessoal!' : 'Bom dia! Vamos começar?',
+              kind: 'simulation',
+            },
+          ]
+        : [];
+    }
+    if (!officeOpen(s) || s.agents.length < 2 || s.assembly?.active) return [];
+    const clock = s.office?.clock || 0,
+      slot = Math.floor(clock / 14),
+      phase = clock % 14;
+    if (phase > 9) return [];
+    const activeAgent = s.agents[slot % s.agents.length],
+      attention =
+        s.tasks.find((t) => t.agent === activeAgent.id && t.status === 'review') ||
+        s.tasks.find((t) => t.agent === activeAgent.id && t.execution?.error) ||
+        s.tasks.find((t) => t.agent === activeAgent.id && t.status === 'blocked');
+    if (attention)
+      return [
+        {
+          id: activeAgent.id,
+          text:
+            attention.status === 'review'
+              ? attention.execution?.kind === 'real' || attention.validation
+                ? 'Uma entrega espera sua revisão.'
+                : 'Simulação pronta para revisar.'
+              : attention.execution?.error
+                ? 'Preciso revisar uma falha.'
+                : 'Aguardo a tarefa anterior.',
+          kind: 'work',
+          taskId: attention.id,
+        },
+      ];
+    if (s.preferences?.social === false) return [];
+    const first = slot % s.agents.length,
+      second = (first + 1) % s.agents.length,
+      a = s.agents[first],
+      b = s.agents[second];
+    const pairs = [
+      ['Bom dia! Café antes de começar?', 'Bora. Depois organizamos as ideias.'],
+      ['Como está a sua parte?', 'Estou cuidando dos detalhes.'],
+      ['Vamos fazer uma pausa curta?', 'Boa! Já já volto para a mesa.'],
+      ['Tem uma ideia nova por aí?', 'Tenho! Vou preparar um rascunho.'],
+      ['Mais um passo de cada vez.', 'Combinado. Vamos caprichar!'],
+    ];
+    const lines = pairs[slot % pairs.length];
+    return phase < 4
+      ? [{ id: a.id, text: lines[0], kind: 'simulation' }]
+      : [{ id: b.id, text: lines[1], kind: 'simulation' }];
+  }
+  function create() {
+    return migrate({
+      agents: [
+        { id: 1, name: 'Atlas', role: 'Líder de projetos' },
+        { id: 2, name: 'Luna', role: 'Designer de produto' },
+        { id: 3, name: 'Theo', role: 'Desenvolvedor' },
+        { id: 4, name: 'Sofia', role: 'Pesquisadora' },
+        { id: 5, name: 'Oliver', role: 'Estrategista de conteúdo' },
+        { id: 6, name: 'Maya', role: 'Analista de dados' },
+      ],
+      tasks: [
+        {
+          id: 1,
+          title: 'Investigar a oportunidade',
+          description: 'Entender para quem vamos construir nosso primeiro produto.',
+          category: 'PESQUISA',
+          agent: 4,
+          progress: 18,
+          template: 'research',
+        },
+        {
+          id: 2,
+          title: 'Desenhar a primeira experiência',
+          description: 'Transformar as descobertas da pesquisa em um fluxo de uso.',
+          category: 'DESIGN',
+          agent: 2,
+          dependency: 1,
+          template: 'design',
+        },
+        {
+          id: 3,
+          title: 'Construir o primeiro protótipo',
+          description: 'Implementar a experiência aprovada pelo fundador.',
+          category: 'DESENVOLVIMENTO',
+          agent: 3,
+          dependency: 2,
+          template: 'development',
+        },
+      ],
+    });
+  }
+  function migrate(raw) {
+    if (!raw || !Array.isArray(raw.agents) || !raw.agents.length || !Array.isArray(raw.tasks))
+      throw Error('Backup sem equipe ou tarefas válidas.');
+    const agents = raw.agents.slice(0, 24).map((a, i) => ({
+      id: string(String(a.id ?? uid()), '', 80),
+      name: string(a.name, 'Agente', 25),
+      role: string(a.role, 'Assistente', 60),
+      department: departmentOf(a),
+      model: string(a.model, 'Simulador local', 80),
+      color: /^#[\da-f]{6}$/i.test(a.color) ? a.color : colors[i % colors.length],
+      rest: !!a.rest,
+      autoRest: !!a.autoRest,
+      energy: clamp(Number(a.energy) || 85, 1, 100),
+      xp: Math.max(0, Number(a.xp) || 0),
+      instructions: string(
+        a.instructions,
+        'Trabalhe com clareza, registre limitações e peça revisão antes de encerrar.',
+        2000,
+      ),
+      meetingUntil: Math.max(0, Number(a.meetingUntil) || 0),
+    }));
+    if (new Set(agents.map((a) => a.id)).size !== agents.length)
+      throw Error('IDs de agentes duplicados.');
+    const tasks = raw.tasks.slice(0, 500).map((t) => {
+      const template = Object.hasOwn(templates, t.template) ? t.template : 'research',
+        p = templates[template];
+      return {
+        workRunId: string(t.workRunId, '', 80),
+        workStatus: string(t.workStatus, '', 40),
+        projectId: string(t.projectId, 'firma', 80),
+        artifacts: Array.isArray(t.artifacts)
+          ? t.artifacts.slice(0, 30).filter((x) => typeof x === 'string' && x.length < 200)
+          : [],
+        validation:
+          t.validation && typeof t.validation.runId === 'string'
+            ? { runId: t.validation.runId, passed: !!t.validation.passed }
+            : null,
+        id: string(String(t.id ?? uid()), '', 80),
+        title: string(t.title, 'Nova tarefa', 100),
+        description: string(t.description, '', 3000),
+        category: string(t.category, p.category, 40),
+        agent: agents.some((a) => a.id === String(t.agent)) ? String(t.agent) : agents[0].id,
+        template,
+        output: string(t.output, p.output, 1500),
+        criteria: string(t.criteria, p.criteria, 2000),
+        priority: ['high', 'normal', 'low'].includes(t.priority) ? t.priority : 'normal',
+        due: /^\d{4}-\d{2}-\d{2}$/.test(t.due) ? t.due : '',
+        dependency: t.dependency ? String(t.dependency) : '',
+        status: Object.hasOwn(stages, t.status)
+          ? t.status
+          : Number(t.progress) >= 100
+            ? 'done'
+            : 'queued',
+        progress: clamp(Number(t.progress) || 0, 0, 100),
+        steps:
+          Array.isArray(t.steps) && t.steps.length
+            ? t.steps.slice(0, 8).map((s) => string(s, 'Etapa', 200))
+            : [...p.steps],
+        result: string(t.result, '', 140000),
+        revisions: Array.isArray(t.revisions)
+          ? t.revisions.slice(-20).map((r) => ({
+              text: string(r.text, '', 2000),
+              time: Math.max(0, Number(r.time) || 0),
+            }))
+          : [],
+        context: string(t.context, '', 12000),
+        revisionCount: Math.max(0, Number(t.revisionCount) || 0),
+        created: Math.max(0, Number(t.created) || 0),
+        execution:
+          t.execution?.kind === 'real'
+            ? {
+                kind: 'real',
+                role: ['leadership', 'planning', 'development', 'testing', 'publishing'].includes(
+                  t.execution.role,
+                )
+                  ? t.execution.role
+                  : p.department,
+                provider: ['codex', 'claude', 'gemini', 'ollama'].includes(t.execution.provider)
+                  ? t.execution.provider
+                  : 'codex',
+                model: string(t.execution.model, '', 100),
+                status: ['pending', 'running', 'ready', 'held', 'error', 'completed'].includes(
+                  t.execution.status,
+                )
+                  ? t.execution.status
+                  : 'held',
+                error: string(t.execution.error, '', 300),
+                tokens: Math.max(0, Number(t.execution.tokens) || 0),
+                completedAt: string(t.execution.completedAt, '', 40),
+              }
+            : null,
+      };
+    });
+    if (new Set(tasks.map((t) => t.id)).size !== tasks.length)
+      throw Error('IDs de tarefas duplicados.');
+    tasks.forEach((t) => {
+      if (t.dependency && !tasks.some((d) => d.id === t.dependency)) t.dependency = '';
+      if (t.status === 'done' || t.status === 'review') t.progress = 100;
+    });
+    const state = {
+      version: 2,
+      preferences: {
+        social: raw.preferences?.social !== false,
+        reducedMotion: !!raw.preferences?.reducedMotion,
+        decoration: ['classic', 'garden', 'wood'].includes(raw.preferences?.decoration)
+          ? raw.preferences.decoration
+          : 'classic',
+      },
+      assembly: { active: raw.assembly?.active === true },
+      agents,
+      tasks,
+      seconds: Math.max(0, Number(raw.seconds) || 0),
+      speed: [1, 2, 4].includes(raw.speed) ? raw.speed : 1,
+      events: Array.isArray(raw.events)
+        ? raw.events.slice(0, 80).map((e) => ({
+            name: string(e.name, 'Equipe', 60),
+            text: string(e.text, '', 500),
+            time: Math.max(0, Number(e.time) || 0),
+          }))
+        : [],
+      memory: string(
+        raw.memory,
+        'Somos uma pequena empresa construindo produtos úteis. Priorizamos clareza, acessibilidade e entregas verificáveis.',
+        12000,
+      ),
+      company: string(raw.company, 'Firma HQ', 40),
+      onboarded: !!raw.onboarded,
+    };
+    state.office = migrateOffice(raw.office, agents);
+    const p = raw.player && typeof raw.player === 'object' ? raw.player : {};
+    const color = (value, fallback) => (/^#[\da-f]{6}$/i.test(value) ? value : fallback);
+    const currentLayout = p.layout === officeLayout.id,
+      knownLayout =
+        currentLayout || ['village-v4', 'compact-v3', 'compact-v2', 'rooms-v1'].includes(p.layout);
+    if (!currentLayout) state.assembly = { active: false };
     // This is a new five-room plan. Older saves re-enter at the shared doors, preserving the office.
-    const b=officeLayout.bounds;
-    state.player={name:string(p.name,'Você',20).trim()||'Você',color:color(p.color,'#c3ed8b'),skin:color(p.skin,'#c89570'),hair:color(p.hair,'#342d2b'),x:currentLayout&&Number.isFinite(p.x)?clamp(p.x,b.left,b.right):officeLayout.spawn.x,y:currentLayout&&Number.isFinite(p.y)?clamp(p.y,b.top,b.bottom):officeLayout.spawn.y,visited:knownLayout&&Array.isArray(p.visited)?[...new Set(p.visited.filter(v=>['planning','development','testing','publishing','leadership','rest','admin'].includes(v)))]:[],immersive:true,layout:officeLayout.id};
-    for(const t of tasks){const seen=new Set([t.id]);let dep=t.dependency;while(dep){if(seen.has(dep))throw Error('O backup contém dependências circulares.');seen.add(dep);dep=tasks.find(d=>d.id===dep)?.dependency;}}
-    reconcile(state);return state;
+    const b = officeLayout.bounds;
+    state.player = {
+      name: string(p.name, 'Você', 20).trim() || 'Você',
+      color: color(p.color, '#c3ed8b'),
+      skin: color(p.skin, '#c89570'),
+      hair: color(p.hair, '#342d2b'),
+      x: currentLayout && Number.isFinite(p.x) ? clamp(p.x, b.left, b.right) : officeLayout.spawn.x,
+      y: currentLayout && Number.isFinite(p.y) ? clamp(p.y, b.top, b.bottom) : officeLayout.spawn.y,
+      visited:
+        knownLayout && Array.isArray(p.visited)
+          ? [
+              ...new Set(
+                p.visited.filter((v) =>
+                  [
+                    'planning',
+                    'development',
+                    'testing',
+                    'publishing',
+                    'leadership',
+                    'rest',
+                    'admin',
+                  ].includes(v),
+                ),
+              ),
+            ]
+          : [],
+      immersive: true,
+      layout: officeLayout.id,
+    };
+    for (const t of tasks) {
+      const seen = new Set([t.id]);
+      let dep = t.dependency;
+      while (dep) {
+        if (seen.has(dep)) throw Error('O backup contém dependências circulares.');
+        seen.add(dep);
+        dep = tasks.find((d) => d.id === dep)?.dependency;
+      }
+    }
+    reconcile(state);
+    return state;
   }
-  function event(s,name,text){s.events.unshift({name,text,time:s.seconds});s.events=s.events.slice(0,80);}
-  function blocked(s,t){return !!t.dependency&&!s.tasks.some(d=>d.id===t.dependency&&d.status==='done');}
-  function reconcile(s){
-    const priority={high:0,normal:1,low:2};
-    for(const a of s.agents){const list=s.tasks.filter(t=>t.agent===a.id&&!['done','review'].includes(t.status));list.sort((a,b)=>priority[a.priority]-priority[b.priority]||(a.due||'9999').localeCompare(b.due||'9999')||a.created-b.created);let occupied=false;for(const t of list){if(t.workRunId){t.status=blocked(s,t)?'blocked':t.workStatus==='running'&&officeOpen(s)?'working':'queued';if(t.status==='working')occupied=true;continue;}if(t.execution?.kind==='real'&&['held','error'].includes(t.execution.status)){t.status=blocked(s,t)?'blocked':'queued';continue;}if(blocked(s,t)){t.status='blocked';continue;}if(!occupied&&officeOpen(s)&&!s.assembly?.active&&!a.rest&&a.meetingUntil<=s.seconds){t.status='working';occupied=true;}else t.status='queued';}}
+  function event(s, name, text) {
+    s.events.unshift({ name, text, time: s.seconds });
+    s.events = s.events.slice(0, 80);
   }
-  function agentStatus(s,a){if(!officeOpen(s))return{key:'off',label:presence(s,a.id)==='outside'?'Fora do expediente':presence(s,a.id)==='leaving'?'Saindo':presence(s,a.id)==='entering'?'Chegando':'Aguardando expediente'};if(s.assembly?.active)return{key:'meeting',label:'Reunião geral'};if(a.meetingUntil>s.seconds)return{key:'meeting',label:'Em reunião'};if(a.rest)return{key:'rest',label:a.autoRest?'Recarregando':'Em pausa'};if(s.tasks.some(t=>t.agent===a.id&&t.status==='working'))return{key:'working',label:'Produzindo'};if(s.tasks.some(t=>t.agent===a.id&&t.status==='review'))return{key:'review',label:'Aguarda revisão'};if(s.tasks.some(t=>t.agent===a.id&&t.status==='blocked'))return{key:'blocked',label:'Dependência'};return{key:'idle',label:'Disponível'};}
-  function recommend(s,key){const p=templates[key]||templates.research;return s.agents.filter(a=>departmentOf(a)===p.department).sort((a,b)=>{const score=a=>(a.role.toLowerCase().includes(p.role.toLowerCase())?10:0)-s.tasks.filter(t=>t.agent===a.id&&!['done','review'].includes(t.status)).length*2+(a.rest?-2:0);return score(b)-score(a);})[0];}
-  function addTask(s,input){const p=templates[input.template]||templates.research;const agent=s.agents.find(a=>a.id===String(input.agent));if(!agent)throw Error('Selecione um agente válido.');if(departmentOf(agent)!==p.department)throw Error('Escolha um agente da sala '+departments[p.department].name+'.');if(!String(input.title||'').trim()||!String(input.description||'').trim())throw Error('Preencha título e briefing.');if(input.dependency&&!s.tasks.some(t=>t.id===String(input.dependency)))throw Error('Dependência inválida.');const projectId=string(input.projectId,'firma',80);if(input.dependency&&s.tasks.find(t=>t.id===String(input.dependency))?.projectId!==projectId)throw Error('A dependência deve pertencer ao mesmo projeto.');const task={projectId,artifacts:[],validation:null,id:uid(),title:string(input.title.trim(),'',100),description:string(input.description.trim(),'',3000),category:p.category,template:Object.hasOwn(templates,input.template)?input.template:'research',output:string(input.output,p.output,1500),criteria:string(input.criteria,p.criteria,2000),agent:agent.id,priority:['high','low'].includes(input.priority)?input.priority:'normal',due:/^\d{4}-\d{2}-\d{2}$/.test(input.due)?input.due:'',dependency:input.dependency?String(input.dependency):'',status:'queued',progress:0,steps:[...p.steps],result:'',revisions:[],revisionCount:0,created:s.seconds,context:string(input.context,s.memory,12000)};s.tasks.push(task);agent.rest=false;agent.autoRest=false;event(s,agent.name,`recebeu “${task.title}”.`);reconcile(s);return task;}
-  function result(s,t){const a=s.agents.find(a=>a.id===t.agent);return`# ${t.title}\n\n> MODELO DE ENTREGA SIMULADA — nenhum modelo de IA executou esta tarefa.\n\n## Briefing\n${t.description}\n\n## Responsável\n${a?.name||'Equipe'} · ${a?.role||''}\n\n## Entrega esperada\n${t.output}\n\n## Critérios de aceite\n${t.criteria}\n\n## Etapas percorridas na simulação\n${t.steps.map(x=>'- [x] '+x).join('\n')}\n\n## Contexto compartilhado no início da tarefa\n${t.context||'Sem contexto adicional.'}\n\n## Dependência aprovada\n${t.dependency?s.tasks.find(d=>d.id===t.dependency)?.title||'Sem dependência':'Sem dependência'}\n\n## Feedback de revisão\n${t.revisions.map(r=>'- '+r.text).join('\n')||'Nenhum feedback registrado.'}\n\n## Próximo passo real\nConectar um executor de IA para produzir o conteúdo solicitado. Este documento registra o briefing e o fluxo; não é pesquisa, código ou análise realizados.\n`;}
-  function tick(s,dt){if(!Number.isFinite(dt)||dt<=0)return;s.seconds+=dt;if(!officeOpen(s)){reconcile(s);return;}if(s.assembly?.active){reconcile(s);return;}for(const a of s.agents){if(a.rest){a.energy=Math.min(100,a.energy+dt*.7);if(a.autoRest&&a.energy>=85){a.rest=false;a.autoRest=false;event(s,a.name,'voltou da pausa automática.');}}else if(s.tasks.some(t=>t.agent===a.id&&t.status==='working')){a.energy=Math.max(0,a.energy-dt*.11);if(a.energy<20){a.rest=true;a.autoRest=true;event(s,a.name,'fez uma pausa na própria mesa.');}}}
-    reconcile(s);for(const t of s.tasks.filter(t=>t.status==='working'&&!t.workRunId&&t.execution?.kind!=='real')){const a=s.agents.find(a=>a.id===t.agent);t.progress=Math.min(100,t.progress+dt*.65*(.6+a.energy/250));if(t.progress>=100){t.status='review';t.result=result(s,t);event(s,a.name,`enviou “${t.title}” para sua revisão.`);}}reconcile(s);
+  function blocked(s, t) {
+    return !!t.dependency && !s.tasks.some((d) => d.id === t.dependency && d.status === 'done');
   }
-  function approve(s,id){const t=s.tasks.find(t=>t.id===id);if(!t||t.status!=='review')throw Error('A tarefa precisa estar em revisão.');t.status='done';const a=s.agents.find(a=>a.id===t.agent);a.xp+=25;event(s,'Você',`aprovou “${t.title}”.`);reconcile(s);}
-  function revise(s,id,feedback){const t=s.tasks.find(t=>t.id===id);if(!t||t.status!=='review')throw Error('A tarefa precisa estar em revisão.');if(!feedback.trim())throw Error('Descreva o ajuste necessário.');t.revisions.push({text:feedback.trim().slice(0,2000),time:s.seconds});t.revisionCount++;t.progress=t.execution?.kind==='real'?0:40;t.status='queued';if(t.execution?.kind==='real'){t.execution.status='held';t.execution.error='Ajustes solicitados. Confirme uma nova chamada de IA.';t.result='';}event(s,'Você',`pediu ajustes em “${t.title}”.`);reconcile(s);}
-  function pauseAgent(s,id){const a=s.agents.find(a=>a.id===id);if(!a)return;a.rest=!a.rest;a.autoRest=false;event(s,a.name,a.rest?'saiu para uma pausa.':'voltou ao trabalho.');reconcile(s);}
-  function meeting(s,goal){
-    if(!goal.trim())throw Error('Descreva o objetivo.');
-    const keys=['planning','development','testing','publishing'];
-    const selected=keys.map(key=>recommend(s,key));
-    if(selected.some(a=>!a))throw Error('É preciso ter pelo menos um agente em cada sala. Contrate ou realoque especialistas na sala do líder.');
-    const labels=['Planejar','Desenvolver','Testar','Preparar postagem'],plan=[];
-    keys.forEach((key,i)=>{selected[i].meetingUntil=s.seconds+15;plan.push(addTask(s,{template:key,agent:selected[i].id,title:(labels[i]+': '+goal).slice(0,100),description:goal,dependency:i?plan[i-1].id:'',priority:'high'}));});
-    event(s,'Codex','organizou o fluxo Planejar → Desenvolver → Testar → Postar. A coordenação e as entregas são simuladas.');
-    reconcile(s);return plan;
+  function reconcile(s) {
+    const priority = { high: 0, normal: 1, low: 2 };
+    for (const a of s.agents) {
+      const list = s.tasks.filter(
+        (t) => t.agent === a.id && !['done', 'review'].includes(t.status),
+      );
+      list.sort(
+        (a, b) =>
+          priority[a.priority] - priority[b.priority] ||
+          (a.due || '9999').localeCompare(b.due || '9999') ||
+          a.created - b.created,
+      );
+      let occupied = false;
+      for (const t of list) {
+        if (t.workRunId) {
+          t.status = blocked(s, t)
+            ? 'blocked'
+            : t.workStatus === 'running' && officeOpen(s)
+              ? 'working'
+              : 'queued';
+          if (t.status === 'working') occupied = true;
+          continue;
+        }
+        if (t.execution?.kind === 'real' && ['held', 'error'].includes(t.execution.status)) {
+          t.status = blocked(s, t) ? 'blocked' : 'queued';
+          continue;
+        }
+        if (blocked(s, t)) {
+          t.status = 'blocked';
+          continue;
+        }
+        if (
+          !occupied &&
+          officeOpen(s) &&
+          !s.assembly?.active &&
+          !a.rest &&
+          a.meetingUntil <= s.seconds
+        ) {
+          t.status = 'working';
+          occupied = true;
+        } else t.status = 'queued';
+      }
+    }
   }
-  function summonTeam(s){if(s.assembly?.active)return;s.assembly={active:true};event(s,'Codex','convocou toda a equipe para a sala de reunião. As tarefas aguardam o encerramento.');reconcile(s);}
-  function dismissTeam(s){if(!s.assembly?.active)return;s.assembly={active:false};event(s,'Codex','encerrou a reunião geral. A equipe retorna às suas salas.');reconcile(s);}
-  function contract(s,t){return{version:1,mode:t.execution?.kind==='real'?'real':'simulation',taskId:t.id,projectId:t.projectId||'firma',artifacts:t.artifacts||[],objective:t.title,instructions:t.description,agent:s.agents.find(a=>a.id===t.agent),expectedOutput:t.output,acceptanceCriteria:t.criteria,contextSnapshot:t.context,dependency:t.dependency?s.tasks.find(d=>d.id===t.dependency)?.result||'':null,feedback:t.revisions,requiresHumanReview:true};}
-  return{shiftSeconds,migrateOffice,officeOpen,presence,changeOffice,advanceOffice,routine,dialogue,officeLayout,colors,stages,templates,departments,departmentOf,taskDepartment,uid,create,migrate,event,reconcile,agentStatus,recommend,addTask,tick,approve,revise,pauseAgent,meeting,summonTeam,dismissTeam,contract};
+  function agentStatus(s, a) {
+    if (!officeOpen(s))
+      return {
+        key: 'off',
+        label:
+          presence(s, a.id) === 'outside'
+            ? 'Fora do expediente'
+            : presence(s, a.id) === 'leaving'
+              ? 'Saindo'
+              : presence(s, a.id) === 'entering'
+                ? 'Chegando'
+                : 'Aguardando expediente',
+      };
+    if (s.assembly?.active) return { key: 'meeting', label: 'Reunião geral' };
+    if (a.meetingUntil > s.seconds) return { key: 'meeting', label: 'Em reunião' };
+    if (a.rest) return { key: 'rest', label: a.autoRest ? 'Recarregando' : 'Em pausa' };
+    if (s.tasks.some((t) => t.agent === a.id && t.status === 'working'))
+      return { key: 'working', label: 'Produzindo' };
+    if (s.tasks.some((t) => t.agent === a.id && t.status === 'review'))
+      return { key: 'review', label: 'Aguarda revisão' };
+    if (s.tasks.some((t) => t.agent === a.id && t.status === 'blocked'))
+      return { key: 'blocked', label: 'Dependência' };
+    return { key: 'idle', label: 'Disponível' };
+  }
+  function recommend(s, key) {
+    const p = templates[key] || templates.research;
+    return s.agents
+      .filter((a) => departmentOf(a) === p.department)
+      .sort((a, b) => {
+        const score = (a) =>
+          (a.role.toLowerCase().includes(p.role.toLowerCase()) ? 10 : 0) -
+          s.tasks.filter((t) => t.agent === a.id && !['done', 'review'].includes(t.status)).length *
+            2 +
+          (a.rest ? -2 : 0);
+        return score(b) - score(a);
+      })[0];
+  }
+  function addTask(s, input) {
+    const p = templates[input.template] || templates.research;
+    const agent = s.agents.find((a) => a.id === String(input.agent));
+    if (!agent) throw Error('Selecione um agente válido.');
+    if (departmentOf(agent) !== p.department)
+      throw Error('Escolha um agente da sala ' + departments[p.department].name + '.');
+    if (!String(input.title || '').trim() || !String(input.description || '').trim())
+      throw Error('Preencha título e briefing.');
+    if (input.dependency && !s.tasks.some((t) => t.id === String(input.dependency)))
+      throw Error('Dependência inválida.');
+    const projectId = string(input.projectId, 'firma', 80);
+    if (
+      input.dependency &&
+      s.tasks.find((t) => t.id === String(input.dependency))?.projectId !== projectId
+    )
+      throw Error('A dependência deve pertencer ao mesmo projeto.');
+    const task = {
+      projectId,
+      artifacts: [],
+      validation: null,
+      id: uid(),
+      title: string(input.title.trim(), '', 100),
+      description: string(input.description.trim(), '', 3000),
+      category: p.category,
+      template: Object.hasOwn(templates, input.template) ? input.template : 'research',
+      output: string(input.output, p.output, 1500),
+      criteria: string(input.criteria, p.criteria, 2000),
+      agent: agent.id,
+      priority: ['high', 'low'].includes(input.priority) ? input.priority : 'normal',
+      due: /^\d{4}-\d{2}-\d{2}$/.test(input.due) ? input.due : '',
+      dependency: input.dependency ? String(input.dependency) : '',
+      status: 'queued',
+      progress: 0,
+      steps: [...p.steps],
+      result: '',
+      revisions: [],
+      revisionCount: 0,
+      created: s.seconds,
+      context: string(input.context, s.memory, 12000),
+    };
+    s.tasks.push(task);
+    agent.rest = false;
+    agent.autoRest = false;
+    event(s, agent.name, `recebeu “${task.title}”.`);
+    reconcile(s);
+    return task;
+  }
+  function result(s, t) {
+    const a = s.agents.find((a) => a.id === t.agent);
+    return `# ${t.title}\n\n> MODELO DE ENTREGA SIMULADA — nenhum modelo de IA executou esta tarefa.\n\n## Briefing\n${t.description}\n\n## Responsável\n${a?.name || 'Equipe'} · ${a?.role || ''}\n\n## Entrega esperada\n${t.output}\n\n## Critérios de aceite\n${t.criteria}\n\n## Etapas percorridas na simulação\n${t.steps.map((x) => '- [x] ' + x).join('\n')}\n\n## Contexto compartilhado no início da tarefa\n${t.context || 'Sem contexto adicional.'}\n\n## Dependência aprovada\n${t.dependency ? s.tasks.find((d) => d.id === t.dependency)?.title || 'Sem dependência' : 'Sem dependência'}\n\n## Feedback de revisão\n${t.revisions.map((r) => '- ' + r.text).join('\n') || 'Nenhum feedback registrado.'}\n\n## Próximo passo real\nConectar um executor de IA para produzir o conteúdo solicitado. Este documento registra o briefing e o fluxo; não é pesquisa, código ou análise realizados.\n`;
+  }
+  function tick(s, dt) {
+    if (!Number.isFinite(dt) || dt <= 0) return;
+    s.seconds += dt;
+    if (!officeOpen(s)) {
+      reconcile(s);
+      return;
+    }
+    if (s.assembly?.active) {
+      reconcile(s);
+      return;
+    }
+    for (const a of s.agents) {
+      if (a.rest) {
+        a.energy = Math.min(100, a.energy + dt * 0.7);
+        if (a.autoRest && a.energy >= 85) {
+          a.rest = false;
+          a.autoRest = false;
+          event(s, a.name, 'voltou da pausa automática.');
+        }
+      } else if (s.tasks.some((t) => t.agent === a.id && t.status === 'working')) {
+        a.energy = Math.max(0, a.energy - dt * 0.11);
+        if (a.energy < 20) {
+          a.rest = true;
+          a.autoRest = true;
+          event(s, a.name, 'fez uma pausa na própria mesa.');
+        }
+      }
+    }
+    reconcile(s);
+    for (const t of s.tasks.filter(
+      (t) => t.status === 'working' && !t.workRunId && t.execution?.kind !== 'real',
+    )) {
+      const a = s.agents.find((a) => a.id === t.agent);
+      t.progress = Math.min(100, t.progress + dt * 0.65 * (0.6 + a.energy / 250));
+      if (t.progress >= 100) {
+        t.status = 'review';
+        t.result = result(s, t);
+        event(s, a.name, `enviou “${t.title}” para sua revisão.`);
+      }
+    }
+    reconcile(s);
+  }
+  function approve(s, id) {
+    const t = s.tasks.find((t) => t.id === id);
+    if (!t || t.status !== 'review') throw Error('A tarefa precisa estar em revisão.');
+    t.status = 'done';
+    const a = s.agents.find((a) => a.id === t.agent);
+    a.xp += 25;
+    event(s, 'Você', `aprovou “${t.title}”.`);
+    reconcile(s);
+  }
+  function revise(s, id, feedback) {
+    const t = s.tasks.find((t) => t.id === id);
+    if (!t || t.status !== 'review') throw Error('A tarefa precisa estar em revisão.');
+    if (!feedback.trim()) throw Error('Descreva o ajuste necessário.');
+    t.revisions.push({ text: feedback.trim().slice(0, 2000), time: s.seconds });
+    t.revisionCount++;
+    t.progress = t.execution?.kind === 'real' ? 0 : 40;
+    t.status = 'queued';
+    if (t.execution?.kind === 'real') {
+      t.execution.status = 'held';
+      t.execution.error = 'Ajustes solicitados. Confirme uma nova chamada de IA.';
+      t.result = '';
+    }
+    event(s, 'Você', `pediu ajustes em “${t.title}”.`);
+    reconcile(s);
+  }
+  function pauseAgent(s, id) {
+    const a = s.agents.find((a) => a.id === id);
+    if (!a) return;
+    a.rest = !a.rest;
+    a.autoRest = false;
+    event(s, a.name, a.rest ? 'saiu para uma pausa.' : 'voltou ao trabalho.');
+    reconcile(s);
+  }
+  function meeting(s, goal) {
+    if (!goal.trim()) throw Error('Descreva o objetivo.');
+    const keys = ['planning', 'development', 'testing', 'publishing'];
+    const selected = keys.map((key) => recommend(s, key));
+    if (selected.some((a) => !a))
+      throw Error(
+        'É preciso ter pelo menos um agente em cada sala. Contrate ou realoque especialistas na sala do líder.',
+      );
+    const labels = ['Planejar', 'Desenvolver', 'Testar', 'Preparar postagem'],
+      plan = [];
+    keys.forEach((key, i) => {
+      selected[i].meetingUntil = s.seconds + 15;
+      plan.push(
+        addTask(s, {
+          template: key,
+          agent: selected[i].id,
+          title: (labels[i] + ': ' + goal).slice(0, 100),
+          description: goal,
+          dependency: i ? plan[i - 1].id : '',
+          priority: 'high',
+        }),
+      );
+    });
+    event(
+      s,
+      'Codex',
+      'organizou o fluxo Planejar → Desenvolver → Testar → Postar. A coordenação e as entregas são simuladas.',
+    );
+    reconcile(s);
+    return plan;
+  }
+  function summonTeam(s) {
+    if (s.assembly?.active) return;
+    s.assembly = { active: true };
+    event(
+      s,
+      'Codex',
+      'convocou toda a equipe para a sala de reunião. As tarefas aguardam o encerramento.',
+    );
+    reconcile(s);
+  }
+  function dismissTeam(s) {
+    if (!s.assembly?.active) return;
+    s.assembly = { active: false };
+    event(s, 'Codex', 'encerrou a reunião geral. A equipe retorna às suas salas.');
+    reconcile(s);
+  }
+  function contract(s, t) {
+    return {
+      version: 1,
+      mode: t.execution?.kind === 'real' ? 'real' : 'simulation',
+      taskId: t.id,
+      projectId: t.projectId || 'firma',
+      artifacts: t.artifacts || [],
+      objective: t.title,
+      instructions: t.description,
+      agent: s.agents.find((a) => a.id === t.agent),
+      expectedOutput: t.output,
+      acceptanceCriteria: t.criteria,
+      contextSnapshot: t.context,
+      dependency: t.dependency ? s.tasks.find((d) => d.id === t.dependency)?.result || '' : null,
+      feedback: t.revisions,
+      requiresHumanReview: true,
+    };
+  }
+  return {
+    shiftSeconds,
+    migrateOffice,
+    officeOpen,
+    presence,
+    changeOffice,
+    advanceOffice,
+    routine,
+    dialogue,
+    officeLayout,
+    colors,
+    stages,
+    templates,
+    departments,
+    departmentOf,
+    taskDepartment,
+    uid,
+    create,
+    migrate,
+    event,
+    reconcile,
+    agentStatus,
+    recommend,
+    addTask,
+    tick,
+    approve,
+    revise,
+    pauseAgent,
+    meeting,
+    summonTeam,
+    dismissTeam,
+    contract,
+  };
 });
