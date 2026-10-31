@@ -179,7 +179,8 @@
     $('management-count').hidden = !reviews;
     $('working-label').textContent =
       state.tasks.filter((t) => t.status === 'working').length + ' produzindo';
-    $('company-name').textContent = state.company === 'Firma HQ' ? 'Escritório do Igor' : state.company;
+    $('company-name').textContent =
+      state.company === 'Firma HQ' ? 'Escritório do Igor' : state.company;
     const o = state.office,
       labels = {
         open: 'Expediente aberto',

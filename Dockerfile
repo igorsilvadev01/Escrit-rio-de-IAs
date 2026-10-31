@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 WORKDIR /app
 COPY --chown=node:node *.js *.cjs *.css index.html package.json ./
 COPY --chown=node:node docs/ docs/
+COPY --chown=node:node public-art/ public-art/
+COPY --chown=node:node office-logo.svg ./
 COPY --chown=node:node scripts/image-smoke.cjs scripts/image-smoke.cjs
 COPY --from=build --chown=node:node /app/assets/ assets/
 RUN mkdir -p /data && chown node:node /data

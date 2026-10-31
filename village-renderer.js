@@ -32,6 +32,17 @@
     };
   }
   function plant(ctx, x, y, small = false) {
+    if (
+      window.FirmaOfficeArt?.draw(
+        ctx,
+        6,
+        x - (small ? 10 : 19),
+        y - (small ? 28 : 48),
+        small ? 20 : 38,
+        small ? 37 : 62,
+      )
+    )
+      return;
     const { box } = painter(ctx);
     ctx.save();
     ctx.translate(x, y);
@@ -107,6 +118,7 @@
     box(x - 1, y + h - 4, w + 2, 1, '#a5afb5');
   }
   function bookshelf(ctx, x, y) {
+    if (window.FirmaOfficeArt?.draw(ctx, 5, x - 22, y - 50, 44, 64)) return;
     const { box } = painter(ctx);
     box(x - 22, y - 50, 44, 63, '#29343e');
     box(x - 19, y - 47, 38, 57, '#9e754f');
@@ -127,6 +139,7 @@
     box(x - 22, y + 9, 44, 4, '#2b3540');
   }
   function sofa(ctx, x, y, w = 65, h = 34) {
+    if (window.FirmaOfficeArt?.draw(ctx, 4, x, y, w, h)) return;
     const { box } = painter(ctx);
     box(x + 2, y + h - 1, w, 5, '#302c2938');
     box(x + 4, y + h - 1, 4, 5, '#252a30');
@@ -152,6 +165,7 @@
     box(x + w - 7, y + 6, 5, 2, '#7c8a99');
   }
   function paintGround(ctx, W, prefs) {
+    if (window.FirmaOfficeArt?.ground(ctx, W)) return;
     const { box, label } = painter(ctx);
     box(0, 0, W.width, W.height, '#273443');
     // One continuous honey-oak floor, matching the miniature's indoor studio.
@@ -231,7 +245,14 @@
     box(54, 410, 140, 1, '#9cabb3');
   }
   function ground(ctx, W, state, time, prefs) {
-    const key = ['indoor-studio-v1', W.width, W.height, prefs.material, prefs.rug].join(':');
+    const key = [
+      'illustrated-office-v2',
+      window.FirmaOfficeArt?.ready,
+      W.width,
+      W.height,
+      prefs.material,
+      prefs.rug,
+    ].join(':');
     if (key !== groundKey) {
       groundCache = document.createElement('canvas');
       groundCache.width = W.width;
@@ -247,6 +268,28 @@
     else plant(ctx, x, i < 6 ? 53 : y + 1, i < 6);
   }
   function desk(ctx, d, role, occupied, prefs, variant = 0, activity = null) {
+    if (window.FirmaOfficeArt?.ready) {
+      const w = d.w + 8,
+        h = w * 0.82,
+        x = d.x - 4,
+        y = d.y - 12;
+      window.FirmaOfficeArt.draw(ctx, role === 'development' ? 1 : 0, x, y, w, h);
+      if (activity && window.FirmaWorkAnimation) {
+        ctx.save();
+        ctx.translate(x + w * 0.34, y + h * 0.07);
+        ctx.scale((w * 0.34) / 21, (h * 0.23) / 12);
+        window.FirmaWorkAnimation.screen(
+          ctx,
+          { x: 0, y: 0, w: 21, h: 12 },
+          role,
+          activity.time,
+          activity.seed,
+          activity.reduced,
+        );
+        ctx.restore();
+      }
+      return;
+    }
     const { box, label } = painter(ctx),
       [dark, mid, light] = palettes[prefs.material];
     box(d.x + 3, d.y + 9, d.w + 3, d.h + 5, '#453b3038');
@@ -329,6 +372,7 @@
     }
   }
   function chair(ctx, p, color) {
+    if (window.FirmaOfficeArt?.draw(ctx, 2, p.x - 12, p.y - 19, 24, 32)) return;
     const { box } = painter(ctx);
     box(p.x - 10, p.y + 10, 23, 4, '#302c2938');
     box(p.x - 8, p.y - 6, 18, 17, '#253240');

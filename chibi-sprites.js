@@ -1,6 +1,18 @@
 /* Generated chibi sprite artwork. Tinting preserves the original pixel shading. */
 (() => {
   'use strict';
+  const sittingSheet = new Image();
+  sittingSheet.src = 'public-art/chibi-sit.png?v=1';
+  const sitBoxes = [
+    [135, 66, 255, 393],
+    [554, 112, 252, 348],
+    [973, 153, 253, 307],
+    [1393, 137, 253, 323],
+    [135, 482, 255, 369],
+    [554, 510, 252, 341],
+    [972, 529, 254, 321],
+    [1393, 507, 253, 339],
+  ];
   const sheet = new Image(),
     cache = new Map();
   let ready = false;
@@ -24,26 +36,27 @@
           parseInt(hex.slice(5, 7), 16),
         ]
       : null;
-  function frame(row, col, a) {
-    const key = [
-      row,
-      col,
-      a.color,
-      a.hair,
-      a.skin,
-      a.pants,
-      a.shoes,
-      a.hairStyle,
-      a.pantsStyle,
-    ].join(':');
+  function frame(row, col, a, seatCol = null) {
+    const key =
+      [row, col, a.color, a.hair, a.skin, a.pants, a.shoes, a.hairStyle, a.pantsStyle].join(':') +
+      ':' +
+      seatCol;
     if (cache.has(key)) return cache.get(key);
-    const [x, x1] = columns[col],
-      [y, y1] = rows[row],
+    const bounds =
+      seatCol === null
+        ? [
+            columns[col][0],
+            rows[row][0],
+            columns[col][1] - columns[col][0],
+            rows[row][1] - rows[row][0],
+          ]
+        : sitBoxes[(row === 3 ? 4 : 0) + seatCol];
+    const [x, y, fw, fh] = bounds,
       c = document.createElement('canvas');
-    c.width = x1 - x;
-    c.height = y1 - y;
+    c.width = fw;
+    c.height = fh;
     const ctx = c.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(sheet, x, y, c.width, c.height, 0, 0, c.width, c.height);
+    ctx.drawImage(seatCol === null ? sheet : sittingSheet, x, y, fw, fh, 0, 0, fw, fh);
     const data = ctx.getImageData(0, 0, c.width, c.height),
       d = data.data,
       shirt = rgb(a.color),
@@ -118,8 +131,13 @@
       direction = o.facing || 'down',
       row = { down: 0, left: 1, right: 2, up: 3 }[direction] ?? 0,
       col = o.walking ? Math.floor(time * 8) % 4 : 1,
-      im = frame(row, col, a),
-      h = 62,
+      progress = o.seatAmount ?? (o.sitting ? 1 : 0),
+      seatCol =
+        progress > 0 && sittingSheet.complete && sittingSheet.naturalWidth
+          ? window.FirmaSeatMotion.frame(progress, time)
+          : null,
+      im = frame(row, col, a, seatCol),
+      h = seatCol === null ? 62 : (62 * im.height) / (row === 3 ? 369 : 393),
       w = (h * im.width) / im.height;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -134,7 +152,7 @@
       ctx.fillStyle = a.hair || '#202337';
       ctx.fillRect(-w * 0.34, -31, w * 0.68, a.hairStyle === 'long' ? 28 : 14);
     }
-    ctx.drawImage(im, -w / 2, -50, w, h);
+    ctx.drawImage(im, -w / 2, 12 - h, w, h);
     if (a.hairStyle === 'mohawk') {
       ctx.fillStyle = a.hair || '#202337';
       ctx.fillRect(-3, -54, 6, 8);
@@ -165,6 +183,8 @@
       ctx.fillRect(-10, 6, 8, 4);
       ctx.fillRect(3, 6, 8, 4);
     }
+    ctx.save();
+    ctx.translate(0, 62 - h);
     const hat = a.hat,
       color = a.hatColor || '#4d6b88';
     ctx.fillStyle = color;
@@ -181,7 +201,8 @@
       ctx.fillRect(-10, -49, 20, 10);
       ctx.fillRect(-16, -40, 32, 4);
     }
-    if (o.sitting && o.animation === 'typing') {
+    ctx.restore();
+    if (seatCol === null && o.sitting && o.animation === 'typing') {
       const pose = window.FirmaWorkAnimation?.pose(time, o.phase || 0, !!o.workReduced) || {
         left: 0,
         right: 0,
@@ -189,6 +210,66 @@
       ctx.fillStyle = a.skin || '#e3b18c';
       ctx.fillRect(-12, -14 + pose.left, 4, 3);
       ctx.fillRect(9, -14 + pose.right, 4, 3);
+    }
+    if (!o.walking && !o.workReduced && progress === 0) {
+      const beat = Math.sin(time * 3 + (o.phase || 0));
+      ctx.strokeStyle = a.skin || '#e3b18c';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      if (o.animation === 'coffee') {
+        const y = -15 - (beat + 1) * 4;
+        ctx.beginPath();
+        ctx.moveTo(8, -12);
+        ctx.lineTo(14, y);
+        ctx.stroke();
+        ctx.fillStyle = '#f6e8c9';
+        ctx.fillRect(11, y - 5, 7, 7);
+        ctx.strokeStyle = '#eee1c1';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(17, y - 4, 3, 4);
+        ctx.fillStyle = '#b3c6ce66';
+        ctx.fillRect(13, y - 10 - ((time * 3) % 4), 1, 3);
+      } else if (o.animation === 'reading') {
+        ctx.fillStyle = '#344f75';
+        ctx.fillRect(-11, -15, 22, 13);
+        ctx.fillStyle = '#efe4cc';
+        ctx.fillRect(-9, -13, 8, 9);
+        ctx.fillRect(1, -13, 8, 9);
+        ctx.fillStyle = '#9aa8ad';
+        ctx.fillRect(-7, -10, 5, 1);
+        ctx.fillRect(3, -9 + Math.round(beat), 4, 1);
+      } else if (o.animation === 'watering') {
+        ctx.fillStyle = '#7195aa';
+        ctx.fillRect(8, -11, 9, 6);
+        ctx.fillRect(16, -14, 7, 2);
+        ctx.fillStyle = '#b8e5ef';
+        for (let j = 0; j < 3; j++) ctx.fillRect(22 + j * 2, -9 + ((time * 10 + j * 3) % 12), 1, 2);
+      } else if (o.animation === 'talking') {
+        ctx.beginPath();
+        ctx.moveTo(8, -15);
+        ctx.lineTo(16, -21 + beat * 5);
+        ctx.stroke();
+      }
+    }
+    // Short upper-body stretch between work bursts, without moving the chair.
+    if (progress > 0.98 && !o.workReduced && (time + (o.phase || 0)) % 19 > 16) {
+      ctx.strokeStyle = a.color || '#536f9a';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'square';
+      ctx.beginPath();
+      ctx.moveTo(-8, 3 - h * 0.37);
+      ctx.lineTo(-13, 5 - h * 0.54);
+      ctx.moveTo(8, 3 - h * 0.37);
+      ctx.lineTo(13, 5 - h * 0.54);
+      ctx.stroke();
+      ctx.strokeStyle = a.skin || '#e3b18c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-13, 5 - h * 0.54);
+      ctx.lineTo(-15, 5 - h * 0.66);
+      ctx.moveTo(13, 5 - h * 0.54);
+      ctx.lineTo(15, 5 - h * 0.66);
+      ctx.stroke();
     }
     ctx.restore();
   }

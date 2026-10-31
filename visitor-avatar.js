@@ -72,7 +72,7 @@
     appearance = normalize(JSON.parse(localStorage.getItem(key)));
   } catch {}
   function draw(ctx, o) {
-    if(window.FirmaChibi?.ready) return window.FirmaChibi.draw(ctx,o);
+    if (window.FirmaChibi?.ready) return window.FirmaChibi.draw(ctx, o);
     const a = o.avatarPreview || o.colleagueAppearance || appearance,
       t = o.time || 0,
       stride = o.walking ? Math.round(Math.sin(t * 13) * 2) : 0,
@@ -287,7 +287,9 @@
     render();
     dialog.showModal();
   }
-  window.addEventListener('firma-chibi-ready',()=>{if(dialog.open)render();});
+  window.addEventListener('firma-chibi-ready', () => {
+    if (dialog.open) render();
+  });
   form.addEventListener('input', render);
   const cancel = () => {
     pending = null;

@@ -174,7 +174,7 @@
     await loadScript('ai-ui.js');
     if (role === 'admin') await loadScript('company-ui.js');
     await loadScript('scene-controls.js');
-    await loadScript('app.js');await loadScript('cozy-room-model.js');await loadScript('cozy-room.js');
+    await loadScript('app.js');
     if (role === 'admin') {
       await loadScript('assets/editor.js');
       await loadScript('studio.js');

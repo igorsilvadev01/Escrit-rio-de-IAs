@@ -205,9 +205,12 @@
       keys.clear();
       route = [];
       pending = null;
-      touchDirection = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[
-        button.dataset.move
-      ];
+      touchDirection = {
+        up: [0, -1],
+        down: [0, 1],
+        left: [-1, 0],
+        right: [1, 0],
+      }[button.dataset.move];
     });
     for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'])
       button.addEventListener(event, () => {
@@ -216,9 +219,12 @@
     button.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        const [x, y] = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[
-          button.dataset.move
-        ];
+        const [x, y] = {
+          up: [0, -1],
+          down: [0, 1],
+          left: [-1, 0],
+          right: [1, 0],
+        }[button.dataset.move];
         stand();
         Object.assign(state.player, W.move(state.player, x * 20, y * 20));
       }
@@ -259,6 +265,7 @@
     stand();
     const destination = target.agent ? positions.get(target.agent) : target;
     if (!destination) return;
+    hudKey = '';
     const end = target.agent ? W.nearest(destination) : { x: target.x, y: target.y };
     route = W.path(state.player, end);
     pending = target;
@@ -345,6 +352,12 @@
       syncMode();
     }
     walking = false;
+    state.player.seatAmount = window.FirmaSeatMotion.advance(
+      state.player.seatAmount || 0,
+      !!seated,
+      dt,
+      reducedMotion.matches || scenePrefs().reduceMotion,
+    );
     if ($('modal').open || ui.view !== 'office' || document.hidden) return;
     const p = state.player,
       before = { x: p.x, y: p.y };
@@ -359,9 +372,11 @@
     }
     if (dx || dy) {
       stand();
+      if (p.seatAmount > 0) return;
       const length = Math.hypot(dx, dy);
       Object.assign(p, W.move(p, (dx / length) * 175 * dt, (dy / length) * 175 * dt));
     } else if (route.length) {
+      if (p.seatAmount > 0) return;
       let budget = 175 * dt;
       while (route.length && budget > 0.01) {
         const next = route[0],
@@ -393,6 +408,7 @@
           }
         }
         activate(target);
+        hudKey = '';
       }
     }
     const mx = p.x - before.x,
@@ -499,9 +515,10 @@
       workReduced:
         reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting: !!seated,
+      seatAmount: p.seatAmount || 0,
       facing,
       player: true,
-      animation: seated === 'rest' ? 'coffee' : 'idle',
+      animation: seated === 'rest' ? 'coffee' : seated ? 'typing' : 'idle',
     });
     ctx.restore();
   }
@@ -549,7 +566,11 @@
       workReduced:
         reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting,
-      facing: p.facing || (sitting && p.mode === 'desk' ? 'down' : 'down'),
+      seatAmount: p.seatAmount,
+      facing:
+        p.seatAmount > 0
+          ? p.seatFacing
+          : p.facing || (sitting && p.mode === 'desk' ? 'down' : 'down'),
       animation: window.FirmaLife?.animation(p.mode) || animation,
       colleagueAppearance: window.FirmaLife?.appearance(state, a),
     });
@@ -663,9 +684,11 @@
     const motionOff =
       reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion;
     if (!ui.paused && !motionOff) animationTime += dt * state.speed;
-    window.FirmaLife?.advance(dt, { reduced: motionOff, paused: ui.paused || document.hidden });
+    window.FirmaLife?.advance(dt, {
+      reduced: motionOff,
+      paused: ui.paused || document.hidden,
+    });
     const visualTime = motionOff ? 0 : timestamp / 1000;
-    if(window.FirmaRoom?.active){requestAnimationFrame(draw);return;}
     const scopedState = sceneOptions().admin
       ? {
           ...state,
@@ -784,14 +807,27 @@
         p.targetKey = '';
         return { a, p, moving: false, sitting: false, hidden: true };
       }
+      if (p.rising) {
+        p.seatAmount = window.FirmaSeatMotion.advance(
+          p.seatAmount || 0,
+          false,
+          ui.paused ? 0 : dt,
+          motionOff,
+        );
+        if (p.seatAmount <= 0) p.rising = false;
+      }
       if (targetKey !== p.targetKey) {
+        if (p.sitting) {
+          p.rising = true;
+          p.sitting = false;
+        }
         p.route = W.path(p, target);
         p.targetKey = targetKey;
       }
       if (p.route.length) {
         let budget =
           (['entering', 'leaving'].includes(presence) ? 140 : 78 + (String(a.id).length % 4) * 5) *
-          (ui.paused || motionOff ? 0 : dt);
+          (ui.paused || motionOff || p.rising ? 0 : dt);
         while (p.route.length && budget > 0.01) {
           const point = p.route[0],
             distance = Math.hypot(point.x - p.x, point.y - p.y);
@@ -815,9 +851,9 @@
           if (amount >= distance - 0.01) p.route.shift();
         }
       }
-      const moving = !!p.route.length,
+      const moving = !!p.route.length && !p.rising,
         sitting =
-          !moving &&
+          !p.route.length &&
           Math.hypot(p.x - target.x, p.y - target.y) < 1 &&
           (mode === 'desk' || mode === 'rest');
       if (!moving && window.FirmaLife) {
@@ -826,7 +862,15 @@
         else if (mode === 'board' || mode === 'coffee') p.facing = 'up';
         else if (mode === 'plant') p.facing = 'right';
       }
-      p.sitting = sitting;
+      p.sitting = sitting && !p.rising;
+      if (!p.rising)
+        p.seatAmount = window.FirmaSeatMotion.advance(
+          p.seatAmount || 0,
+          p.sitting,
+          ui.paused ? 0 : dt,
+          motionOff,
+        );
+      if (p.sitting) p.seatFacing = mode === 'desk' ? 'up' : 'down';
       return { a, p, moving, sitting };
     }
     for (const id of positions.keys())
@@ -848,7 +892,11 @@
       }),
       drawables = [
         ...objects,
-        { id: 'player', y: state.player.y + 10, draw: () => drawPlayer(visualTime) },
+        {
+          id: 'player',
+          y: state.player.y + 10,
+          draw: () => drawPlayer(visualTime),
+        },
       ];
     hitItems = [...Object.values(W.playerSeats), ...W.stations].map((s) => ({
       id: 'station:' + s.id,
@@ -863,16 +911,28 @@
         layer: 1,
         draw: () => {
           ctx.save();
-          ctx.translate(p.x, p.y - (sitting && (a.fixedHost || a.id === leader.id) ? 10 : 0));
+          ctx.translate(p.x, p.y);
           const scale = W.layoutScale * (a.id === 'codex-leader' || a.fixedHost ? 1 : 0.85);
           ctx.scale(scale, scale);
           character(0, 0, a, animationTime, moving, sitting, {
             ...p,
-            facing: !moving && sitting && p.mode === 'desk' ? 'up' : p.facing,
+            facing: p.seatAmount > 0 ? p.seatFacing : p.facing,
           });
           ctx.restore();
         },
       });
+      if (p.mode === 'desk' && p.seatAmount > 0.45 && window.FirmaOfficeArt?.ready)
+        drawables.push({
+          id: 'chair-front:' + a.id,
+          y: p.y + 14,
+          layer: 2,
+          draw: () => {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, (p.seatAmount - 0.45) / 0.35);
+            window.FirmaOfficeArt.draw(ctx, 3, p.x - 11, p.y - 7, 22, 23);
+            ctx.restore();
+          },
+        });
       hitItems.push({
         id: 'actor:' + a.id,
         y: p.y + 10,
@@ -892,7 +952,12 @@
     function nameplate(name, x, y, force = false) {
       const width = Math.min(name.length, 17) * 4.3 + 10;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const bounds = { x: x - width / 2, y: y + attempt * 12, w: width, h: 11 };
+        const bounds = {
+          x: x - width / 2,
+          y: y + attempt * 12,
+          w: width,
+          h: 11,
+        };
         if (
           !placed.some(
             (b) =>
@@ -1043,6 +1108,8 @@
           y: p.y,
           mode: p.mode,
           sitting: !!p.sitting,
+          seatAmount: p.seatAmount || 0,
+          rising: !!p.rising,
           moving: !!p.route.length,
         }));
     },
@@ -1052,7 +1119,9 @@
     project,
     interact: interactNearby,
   };
-  Object.defineProperty(window.FirmaGame, 'sectorActivity', { get: () => sectorActivity });
+  Object.defineProperty(window.FirmaGame, 'sectorActivity', {
+    get: () => sectorActivity,
+  });
   window.FirmaGame.setCamera = (mode) => {
     zoom = scenePrefs().zoom;
     if (!['overview', 'follow', 'desk'].includes(mode)) return;
