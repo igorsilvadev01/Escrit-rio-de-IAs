@@ -19,6 +19,8 @@ STATIC['/visitor-avatar.js'] = 'visitor-avatar.js';
 STATIC['/office-life.js'] = 'office-life.js';
 STATIC['/office-life-ui.js'] = 'office-life-ui.js';
 STATIC['/portfolio-theme.css'] = 'portfolio-theme.css';
+STATIC['/office-logo.svg'] = 'office-logo.svg';
+TYPES['.svg'] = 'image/svg+xml';
 const COOKIE='firma_session',SESSION_MS=8*60*60*1000;
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 // Capture the backend code at process start, so the launcher never reuses a stale instance.

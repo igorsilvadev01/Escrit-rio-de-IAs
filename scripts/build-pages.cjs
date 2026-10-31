@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, '_site');
 fs.mkdirSync(output, { recursive: true });
 // Only explicitly public browser files are included. No server, credentials or project data.
-const files = fs.readdirSync(root).filter(name => /\.(css|js)$/.test(name) && name !== 'access.js');
+const files = fs.readdirSync(root).filter(name => /\.(css|js|svg)$/.test(name) && name !== 'access.js');
 const digest = crypto.createHash('sha256');
 for (const name of files) digest.update(fs.readFileSync(path.join(root, name)));
 digest.update(fs.readFileSync(path.join(root, 'demo', 'access.js')));
@@ -19,7 +19,7 @@ let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 html = html.replace('<title>Escritório do Igor</title>', '<title>Escritório do Igor · Demonstração</title>');
 html = html.replace('src="access.js"', 'src="demo-access.js"');
 html = html.replace('</head>', '<meta name="description" content="Demonstração interativa do escritório de IAs em 2D de Igor Silva. Cenário, personagens e simulação local, sem login ou chamadas de IA."></head>');
-html = html.replace(/(src|href)="([^":]+\.(?:js|css))"/g, (_, attr, file) => `${attr}="${file}?v=${revision}"`);
+html = html.replace(/(src|href)="([^":]+\.(?:js|css|svg))"/g, (_, attr, file) => `${attr}="${file}?v=${revision}"`);
 fs.writeFileSync(path.join(output, 'index.html'), html);
 let ui = fs.readFileSync(path.join(output, 'ui.js'), 'utf8');
 ui = ui.replace("$('connection-label').textContent='Ao vivo'", "$('connection-label').textContent='Simulação local'");
