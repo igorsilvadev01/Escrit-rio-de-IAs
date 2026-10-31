@@ -834,3 +834,111 @@ dialog textarea {
   border-color: #172d50;
   box-shadow: none;
 }
+
+#modal.management-dialog {
+  background: #fff;
+  border: 1px solid #ccd8ef;
+  box-shadow: 0 30px 100px #0e1c3855;
+}
+#modal.management-dialog .modal-heading,
+#modal.management-dialog .modal-actions {
+  border-color: #d6dfef;
+}
+#modal.management-dialog .modal-heading h2 {
+  color: #17243c;
+}
+#modal .manage-shell,
+#modal .manage-task,
+#modal .manage-person {
+  color: #344d7a;
+}
+#modal .manage-nav {
+  background: #f3f6ff;
+  border-color: #d6dfef;
+}
+#modal .manage-nav button {
+  color: #344d7a;
+}
+#modal .manage-nav button[aria-current='page'] {
+  background: #3455f5;
+  border-color: #3455f5;
+  color: #fff;
+  box-shadow: none;
+}
+#modal .manage-nav button:hover {
+  background: #e1e9ff;
+  color: #243b62;
+}
+#modal .manage-nav button b {
+  background: #dfe7ff;
+  color: #3455f5;
+}
+#modal .manage-heading h3,
+#modal .manage-next h4,
+#modal .manage-section-heading h4,
+#modal .manage-task-name b,
+#modal .manage-tools h4,
+#modal .manage-delivery h3,
+#modal .manage-empty h4 {
+  color: #17243c;
+}
+#modal .manage-heading small,
+#modal .manage-heading p,
+#modal .manage-next small,
+#modal .manage-next p,
+#modal .manage-section-heading > span,
+#modal .manage-task-name small,
+#modal .manage-task-end small,
+#modal .manage-office,
+#modal .manage-person small,
+#modal .manage-tools p,
+#modal .manage-empty,
+#modal .manage-delivery p {
+  color: #52647f;
+}
+#modal .manage-summary button,
+#modal .manage-summary button:first-child,
+#modal .manage-next,
+#modal .manage-list,
+#modal .manage-person,
+#modal .manage-tools section,
+#modal .manage-advanced,
+#modal .manage-delivery pre {
+  background: #f3f6ff;
+  border-color: #d6dfef;
+  color: #344d7a;
+  box-shadow: none;
+}
+#modal .manage-summary b {
+  color: #3455f5;
+}
+#modal .manage-task {
+  border-color: #d6dfef;
+}
+#modal .manage-task:hover,
+#modal .manage-person:hover {
+  background: #e9efff;
+}
+#modal .manage-task-mark,
+#modal .manage-task-mark.review,
+#modal .manage-task-mark.done {
+  background: #e1e9ff;
+  border-color: #ccd8ef;
+  color: #3455f5;
+}
+#modal .manage-toolbar input,
+#modal .manage-toolbar select {
+  background: #fff;
+  color: #17243c;
+  border-color: #ccd8ef;
+}
+#modal .manage-toolbar label,
+#modal .manage-tools button,
+#modal .manage-advanced > summary,
+#modal .manage-back {
+  color: #344d7a;
+  border-color: #d6dfef;
+}
+#modal .manage-office .status-dot {
+  background: #3455f5;
+}
