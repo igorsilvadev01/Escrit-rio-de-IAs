@@ -109,6 +109,15 @@
   }, 2000);
   const original = ui.agentDetail;
   ui.agentDetail = (id) => {
+    if (id === 'igor-host') {
+      ui.openModal(
+        'Igor — anfitrião do escritório',
+        '<p class="detail-description">Desenvolvedor Full Stack e anfitrião deste espaço. Minha mesa fica ao lado do Codex, no núcleo de desenvolvimento e planejamento.</p><p class="detail-note">As animações de trabalho fazem parte da demonstração visual do escritório.</p><a class="primary-button" href="https://igorsilvadev01.github.io/Portfolio/" target="_blank" rel="noopener noreferrer">Conhecer meu portfólio ↗</a>',
+        null,
+        null,
+      );
+      return;
+    }
     const a = life.companions.find((x) => x.id === id);
     if (!a) return original(id);
     render();

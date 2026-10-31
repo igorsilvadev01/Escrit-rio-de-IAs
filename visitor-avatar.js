@@ -74,17 +74,40 @@
   function draw(ctx, o) {
     const a = o.avatarPreview || o.colleagueAppearance || appearance,
       t = o.time || 0,
-      stride = o.walking ? Math.round(Math.sin(t * 13) * 2) : 0;
+      stride = o.walking ? Math.round(Math.sin(t * 13) * 2) : 0,
+      work = window.FirmaWorkAnimation?.pose(
+        t,
+        o.phase || 0,
+        !!o.workReduced || !!o.avatarPreview,
+      ) || {
+        left: 0,
+        right: 0,
+        mouse: 0,
+        head: 0,
+        blink: false,
+        frame: 0,
+      },
+      footY = o.sitting ? 7 : 10,
+      face =
+        o.sitting && o.animation === 'typing' && work.action === 'review'
+          ? o.name === 'Igor'
+            ? 'left'
+            : 'right'
+          : o.facing;
     const box = (x, y, w, h, c) => {
       ctx.fillStyle = c;
       ctx.fillRect(x, y, w, h);
     };
     ctx.save();
     ctx.translate(0, o.walking ? Math.round(Math.sin(t * 13)) : 0);
-    box(-11, 11, 23, 4, '#101c3433');
+    box(-11, o.sitting ? 9 : 11, 23, 4, '#101c3433');
+    if (o.sitting) {
+      box(-11, -11, 23, 17, '#243b62');
+      box(-10, -10, 21, 14, '#6e89bb');
+    }
     if (a.hairStyle === 'long') box(-12, -31, 25, 28, a.hair);
     const leg = a.pantsStyle === 'wide' ? 9 : 6,
-      length = a.pantsStyle === 'shorts' ? 5 : 11;
+      length = a.pantsStyle === 'shorts' ? 5 : o.sitting ? 8 : 11;
     box(-8, 0, leg, length, a.pants);
     box(2, 0, leg, length, a.pants);
     if (a.pantsStyle === 'shorts') {
@@ -95,17 +118,17 @@
       box(-8, 5 + stride, 8, 9, a.shoes);
       box(2, 5 - stride, 8, 9, a.shoes);
     }
-    box(-9, 10 + stride, 9, 4, a.shoes);
-    box(2, 10 - stride, 9, 4, a.shoes);
+    box(-9, footY + stride, 9, 4, a.shoes);
+    box(2, footY - stride, 9, 4, a.shoes);
     if (a.shoeStyle === 'sneakers') {
-      box(-9, 13 + stride, 9, 1, '#d5def0');
-      box(2, 13 - stride, 9, 1, '#d5def0');
-      box(-6, 10 + stride, 3, 1, '#17233d');
-      box(4, 10 - stride, 3, 1, '#17233d');
+      box(-9, footY + 3 + stride, 9, 1, '#d5def0');
+      box(2, footY + 3 - stride, 9, 1, '#d5def0');
+      box(-6, footY + stride, 3, 1, '#17233d');
+      box(4, footY - stride, 3, 1, '#17233d');
     }
     if (a.shoeStyle === 'formal') {
-      box(-9, 12 + stride, 9, 2, '#17233d');
-      box(2, 12 - stride, 9, 2, '#17233d');
+      box(-9, footY + 2 + stride, 9, 2, '#17233d');
+      box(2, footY + 2 - stride, 9, 2, '#17233d');
     }
     const torso = a.gender === 'female' ? 13 : a.gender === 'male' ? 19 : 17;
     box(-Math.floor(torso / 2) - 1, -16, torso + 2, 19, '#17233d');
@@ -125,6 +148,8 @@
       box(3, -12, 1, 5, '#fff');
       box(-4, -3, 9, 3, '#13234744');
     }
+    ctx.save();
+    ctx.translate(!o.walking && o.animation === 'typing' ? work.head : 0, 0);
     box(-11, -34, 23, 21, '#17233d');
     box(-9, -32, 19, 18, a.skin);
     if (a.hairStyle !== 'bald') {
@@ -146,16 +171,22 @@
         box(8, -31, 3, 6, a.hair);
       }
     }
-    if (o.facing === 'up' && a.hairStyle !== 'bald') box(-9, -30, 19, 15, a.hair);
-    else {
-      const dx = o.facing === 'left' ? -2 : o.facing === 'right' ? 2 : 0;
-      box(-5 + dx, -25, 2, 4, '#17233d');
-      box(4 + dx, -25, 2, 4, '#17233d');
+    if (face === 'up' && a.hairStyle !== 'bald') {
+      box(-9, -30, 19, 15, a.hair);
+      box(-7, -30, 13, 2, '#ffffff12');
+      box(-8, -27, 2, 7, '#ffffff0c');
+      box(-11, -23, 2, 5, a.skin);
+      box(10, -23, 2, 5, a.skin);
+      box(-2, -16, 5, 3, a.skin);
+    } else {
+      const dx = face === 'left' ? -2 : face === 'right' ? 2 : 0;
+      box(-5 + dx, -25, 2, work.blink ? 1 : 4, '#17233d');
+      box(4 + dx, -25, 2, work.blink ? 1 : 4, '#17233d');
       box(-2 + dx, -18, 5, 1, '#8d534c');
     }
     if (a.hat === 'cap') {
       box(-11, -38, 23, 8, a.hatColor);
-      box(o.facing === 'left' ? -16 : -8, -31, 25, 3, a.hatColor);
+      box(face === 'left' ? -16 : -8, -31, 25, 3, a.hatColor);
     }
     if (a.hat === 'beanie') {
       box(-10, -40, 21, 10, a.hatColor);
@@ -172,11 +203,23 @@
       box(-14, -32, 29, 4, a.hatColor);
       box(-9, -35, 19, 3, '#17233d');
     }
+    ctx.restore();
     const beat = Math.floor(t * 3) % 2;
     if (!o.walking && o.animation === 'typing') {
-      box(-8, -4, 6, 3 + beat, a.skin);
-      box(4, -4, 6, 4 - beat, a.skin);
-      box(-6, -2, 13, 2, '#b8c9ec');
+      if (o.sitting) {
+        // Hands reach the physical desk; nothing floats on the character's lap.
+        box(-14, -21, 5, 11, a.color);
+        box(10, -21, 5, 11, a.color);
+        box(-14, -25 + work.left, 5, 5, a.skin);
+        box(10 + (work.mouse ? 2 : 0), -25 + work.right, 5, 5, a.skin);
+        box(-13, -26 + work.left, 3, 1, '#f1ccb1');
+        box(11, -26 + work.right, 3, 1, '#f1ccb1');
+      } else {
+        box(-10, -7 + work.left, 7, 5, a.color);
+        box(-8, -5 + work.left, 5, 3, a.skin);
+        box(4, -7 + work.right, 7, 5, a.color);
+        box(4, -5 + work.right, 5, 3, a.skin);
+      }
     }
     if (!o.walking && o.animation === 'reading') {
       box(-8, -6, 17, 12, '#3455f5');

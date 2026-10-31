@@ -253,7 +253,12 @@
   function sit(kind) {
     goTo(W.playerSeats[kind]);
   }
+  function hostSeat(target) {
+    if (target?.seat !== 'admin' || !window.FirmaLife?.companions.some(a=>a.fixedHost)) return false;
+    clearMovement();agentDetail('igor-host');return true;
+  }
   function goTo(target) {
+    if (hostSeat(target)) return;
     stand();
     const destination = target.agent ? positions.get(target.agent) : target;
     if (!destination) return;
@@ -274,6 +279,7 @@
     ui.save();
   }
   function activate(target) {
+    if (hostSeat(target)) return;
     if (!target) return;
     clearMovement();
     if (target.seat) {
@@ -287,6 +293,7 @@
     openRemote(target);
   }
   function openRemote(target, tab = 'code') {
+    if (hostSeat(target)) return;
     if (!target) return;
     clearMovement();
     if (target.seat) {
@@ -492,6 +499,7 @@
       hair: p.hair,
       walking,
       time,
+      workReduced: reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting: !!seated,
       facing,
       player: true,
@@ -540,6 +548,7 @@
       phase,
       walking,
       time,
+      workReduced: reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting,
       facing: p.facing || (sitting && p.mode === 'desk' ? 'down' : 'down'),
       animation: window.FirmaLife?.animation(p.mode) || animation,
@@ -825,7 +834,7 @@
     const codex = advanceActor(leader, targetFor(leader));
     if (!codex.hidden) renderAgents.push(codex);
     renderAgents.sort((a, b) => a.p.y - b.p.y);
-    const objects = window.FirmaVillage.objects(W, state, scenePrefs()),
+    const objects = window.FirmaVillage.objects(W, state, scenePrefs(), {time:animationTime,actors:renderAgents,reduced:motionOff}),
       drawables = [
         ...objects,
         {
@@ -847,12 +856,12 @@
         layer: 1,
         draw: () => {
           ctx.save();
-          ctx.translate(p.x, p.y);
-          const scale = W.layoutScale * (a.id === 'codex-leader' ? 1 : 0.85);
+          ctx.translate(p.x, p.y - (sitting && (a.fixedHost || a.id === leader.id) ? 10 : 0));
+          const scale = W.layoutScale * (a.id === 'codex-leader' || a.fixedHost ? 1 : 0.85);
           ctx.scale(scale, scale);
           character(0, 0, a, animationTime, moving, sitting, {
             ...p,
-            facing: !moving && sitting ? 'down' : p.facing,
+            facing: !moving && sitting && p.mode === 'desk' ? 'up' : p.facing,
           });
           ctx.restore();
         },
@@ -892,9 +901,9 @@
           )
         ) {
           placed.push(bounds);
-          rect(bounds.x, bounds.y, bounds.w, 11, '#453c32');
-          rect(bounds.x + 1, bounds.y + 1, bounds.w - 2, 9, '#f0dfb8');
-          text(name.slice(0, 17), bounds.x + 4, bounds.y + 8, '#544635', 7);
+          rect(bounds.x, bounds.y, bounds.w, 11, force ? '#3455f5' : '#637caa');
+          rect(bounds.x + 1, bounds.y + 1, bounds.w - 2, 9, force ? '#edf2ff' : '#ffffff');
+          text(name.slice(0, 17), bounds.x + 4, bounds.y + 8, '#243b62', 7);
           return;
         }
       }
@@ -904,7 +913,7 @@
         selected =
           hovered?.target?.agent === a.id ||
           (hovered?.target?.id === 'leadership' && a.id === leader.id);
-      if (scenePrefs().mode === 'work' || selected) nameplate(a.name, p.x, p.y + 19);
+      if (scenePrefs().mode === 'work' || selected || a.fixedHost || a.id === leader.id) nameplate(a.name, p.x, p.y + (a.fixedHost || a.id === leader.id ? 8 : 19), !!a.fixedHost || a.id === leader.id);
       if (status.symbol && (scenePrefs().mode === 'work' || selected)) {
         const x = p.x + 8,
           y = p.y - 49;

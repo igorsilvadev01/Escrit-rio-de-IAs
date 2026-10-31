@@ -7,6 +7,20 @@
   'use strict';
   const companions = [
     {
+      id: 'igor-host',
+      name: 'Igor',
+      role: 'Desenvolvedor Full Stack · anfitrião',
+      department: 'leadership',
+      color: '#3455f5',
+      skin: '#c49373',
+      hair: '#282321',
+      hairStyle: 'short',
+      gender: 'male',
+      shirtStyle: 'jacket',
+      hat: 'none',
+      fixedHost: true,
+    },
+    {
       id: 'life-nina',
       name: 'Nina',
       role: 'Designer de experiência',
@@ -84,7 +98,9 @@
       shirtStyle: 'hoodie',
       hat: 'none',
     },
-  ].map((a) => ({ ...a, ambient: true, rest: false, meetingUntil: 0 }));
+  ]
+    .sort((a, b) => Number(!!a.fixedHost) - Number(!!b.fixedHost))
+    .map((a) => ({ ...a, ambient: true, rest: false, meetingUntil: 0 }));
   const conversations = [
     {
       title: 'Uma interface que acolhe',
@@ -221,6 +237,7 @@
     }
     function home(s, a) {
       if (a.id === 'codex-leader') return W.leaderHome;
+      if (a.fixedHost) return { x: W.playerSeats.admin.x, y: W.playerSeats.admin.y };
       const group = roster(s).filter((x) => E.departmentOf(x) === E.departmentOf(a));
       return W.agentSeat(
         { ...a, department: E.departmentOf(a) },
@@ -253,6 +270,7 @@
         base = home(s, a),
         i = index(s, a),
         { story, phase } = current();
+      if (a.fixedHost && E.officeOpen(s)) return { mode: 'desk', target: base };
       if (
         !E.officeOpen(s) ||
         s.assembly?.active ||
@@ -263,6 +281,7 @@
         a.id === 'codex-leader'
       )
         return { mode: native, target: null };
+      if (a.fixedHost) return { mode: 'desk', target: base };
       const side = story.ids.indexOf(a.id);
       if (side >= 0 && phase < 70) return { mode: 'chat', target: meeting(story, side) };
       const p = (elapsed + i * 13 + 22) % 100,

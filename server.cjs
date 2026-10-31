@@ -17,6 +17,7 @@ STATIC['/village.css']='village.css';
 STATIC['/village-renderer.js']='village-renderer.js';STATIC['/scene-model.js']='scene-model.js';STATIC['/scene-controls.js']='scene-controls.js';
 STATIC['/visitor-avatar.js'] = 'visitor-avatar.js';
 STATIC['/office-life.js'] = 'office-life.js';
+STATIC['/work-animation.js'] = 'work-animation.js';
 STATIC['/office-life-ui.js'] = 'office-life-ui.js';
 STATIC['/portfolio-theme.css'] = 'portfolio-theme.css';
 STATIC['/office-logo.svg'] = 'office-logo.svg';

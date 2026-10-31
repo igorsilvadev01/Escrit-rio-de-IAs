@@ -8,7 +8,7 @@
     {id:'development',name:'Desenvolver',number:'02',color:'#b39261',x:244,y:70,w:160,h:132,door:{x:270,y:206}},
     {id:'testing',name:'Testar',number:'03',color:'#d6a764',x:80,y:230,w:160,h:132,door:{x:214,y:226}},
     {id:'publishing',name:'Postar',number:'04',color:'#a68a92',x:244,y:230,w:160,h:132,door:{x:270,y:226}},
-    {id:'leadership',name:'Você & Codex',number:'05',color:'#d6bb72',x:408,y:150,w:184,h:132,door:{x:404,y:216}}
+    {id:'leadership',name:'Igor & Codex',number:'05',color:'#d6bb72',x:408,y:150,w:184,h:132,door:{x:404,y:216}}
   ];
   for(const room of rooms)room.seats=room.id==='leadership'?[]:Array.from({length:6},(_,i)=>({x:room.x+[28,84,136][i%3],y:room.y+(i<3?84:114)}));
   for(const r of rooms.filter(r=>r.seats.length))r.seats=Array.from({length:6},(_,i)=>({x:r.x+26+(i%3)*48,y:r.y+(i<3?70:116)}));
@@ -18,7 +18,7 @@
   const furniture={leaderDesk:{x:422,y:188,w:62,h:25},adminDesk:{x:504,y:188,w:70,h:25}};
   const leaderHome={x:450,y:246};
   const playerSeats={
-    admin:{id:'admin',name:'Sua cadeira ao lado do Codex',verb:'Sentar na sua mesa',x:535,y:246,seat:'admin',area:{x:524,y:235,w:22,h:22}},
+    admin:{id:'admin',name:'Mesa do Igor ao lado do Codex',verb:'Conhecer o Igor',x:535,y:246,seat:'admin',area:{x:524,y:235,w:22,h:22}},
     rest:{id:'rest',name:'Seu banco no café',verb:'Sentar no cantinho do café',x:562,y:368,seat:'rest',area:{x:552,y:358,w:20,h:20}}
   };
   const exit={x:40,y:216};

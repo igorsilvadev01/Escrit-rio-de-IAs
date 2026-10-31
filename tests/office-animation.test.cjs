@@ -11,7 +11,7 @@ test('ambient roster adds distinct companions without modifying saved agents or 
     before = JSON.stringify(s),
     life = L.create(W, E),
     roster = life.roster(s);
-  assert.equal(roster.length, s.agents.length + 6);
+  assert.equal(roster.length, s.agents.length + 7);
   assert.equal(new Set(roster.map((a) => a.id)).size, roster.length);
   assert.equal(
     new Set(roster.map((a) => JSON.stringify(life.appearance(s, a)))).size,
