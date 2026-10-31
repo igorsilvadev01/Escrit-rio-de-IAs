@@ -10,7 +10,10 @@ const files = fs.readdirSync(root).filter(name => /\.(css|js|svg)$/.test(name) &
 const digest = crypto.createHash('sha256');
 for (const name of files) digest.update(fs.readFileSync(path.join(root, name)));
 digest.update(fs.readFileSync(path.join(root, 'demo', 'access.js')));
+for (const name of ['cozy-room.png','chibi-walk.png']) digest.update(fs.readFileSync(path.join(root,'public-art',name)));
 const revision = digest.digest('hex').slice(0, 12);
+fs.mkdirSync(path.join(output,'public-art'),{recursive:true});
+for (const name of ['cozy-room.png','chibi-walk.png']) fs.copyFileSync(path.join(root,'public-art',name),path.join(output,'public-art',name));
 for (const name of files) fs.copyFileSync(path.join(root, name), path.join(output, name));
 let demo = fs.readFileSync(path.join(root, 'demo', 'access.js'), 'utf8');
 demo = demo.replace('script.src = src;', `script.src = src + '?v=${revision}';`);

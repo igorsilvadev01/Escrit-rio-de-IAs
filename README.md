@@ -210,3 +210,10 @@ Verificação: `node --test tests/workstation-animation.test.cjs`.
 ### Tema do estúdio da miniatura
 
 A direção de arte do cenário segue o escritório em pixel art criado para a miniatura do portfólio: piso contínuo de madeira mel, janelas amplas de vidro azulado com paisagem, paredes cinza-azuladas, estantes com livros, vegetação em vasos azuis e assentos em azul-ardósia. Os setores, pontos de interação, obstáculos, rotas, personagens e animações conservam a geometria anterior. O renderer é compartilhado pela demonstração e pela versão completa; `studio-theme.css` aplica a mesma paleta aos controles e painéis.
+
+
+### Sala principal no estilo chibi da referência
+
+A entrada jogável usa uma arte-base própria reconstruída a partir do trecho marcado da miniatura, com sprites chibi animados em quatro direções. As duas mesas, sofá, janelas, estantes e plantas seguem a composição da imagem. A sala tem colisões e caminhos próprios; o escritório completo e as ferramentas originais permanecem em **Setores e equipe**, e os atalhos de Planejar, Desenvolver, Testar e Publicar abrem as funções existentes. A arte PNG e os prompts estão em `public-art/README.md`.
+
+Validação da navegação da sala: `node --test tests/cozy-room.test.cjs`.

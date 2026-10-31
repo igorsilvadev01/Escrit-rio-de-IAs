@@ -666,6 +666,7 @@
     if (!ui.paused && !motionOff) animationTime += dt * state.speed;
     window.FirmaLife?.advance(dt, {reduced: motionOff, paused: ui.paused || document.hidden});
     const visualTime = motionOff ? 0 : timestamp / 1000;
+    if(window.FirmaRoom?.active){requestAnimationFrame(draw);return;}
     const scopedState = sceneOptions().admin
       ? {
           ...state,
