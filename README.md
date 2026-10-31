@@ -216,4 +216,6 @@ A direção de arte do cenário segue o escritório em pixel art criado para a m
 
 A entrada jogável usa uma arte-base própria reconstruída a partir do trecho marcado da miniatura, com sprites chibi animados em quatro direções. As duas mesas, sofá, janelas, estantes e plantas seguem a composição da imagem. A sala tem colisões e caminhos próprios; o escritório completo e as ferramentas originais permanecem em **Setores e equipe**, e os atalhos de Planejar, Desenvolver, Testar e Publicar abrem as funções existentes. A arte PNG e os prompts estão em `public-art/README.md`.
 
-Validação da navegação da sala: `node --test tests/cozy-room.test.cjs`.
+Validação da navegação da sala: `node --test tests/cozy-room.test.cjs`.### Escritório completo em arte chibi
+
+O mapa completo é a única cena jogável: todos os setores, Igor e Codex usam móveis ilustrados e personagens chibi da mesma referência visual. A interação com cadeiras tem quadros de aproximação, flexão dos joelhos, acomodação, digitação e retorno em pé antes da caminhada. Há também gestos de leitura, café, rega, conversa e alongamento, respeitando redução de movimento. Navegação, colisões e ferramentas anteriores são preservadas. Arquivos e prompts: [public-art/README.md](public-art/README.md).

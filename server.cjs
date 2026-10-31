@@ -22,8 +22,11 @@ STATIC['/office-life-ui.js'] = 'office-life-ui.js';
 STATIC['/portfolio-theme.css'] = 'portfolio-theme.css';
 STATIC['/studio-theme.css'] = 'studio-theme.css';
 STATIC['/chibi-sprites.js'] = 'chibi-sprites.js';
-STATIC['/cozy-room-model.js'] = 'cozy-room-model.js';
-STATIC['/cozy-room.js'] = 'cozy-room.js';
+STATIC['/seat-motion.js'] = 'seat-motion.js';
+STATIC['/office-art.js'] = 'office-art.js';
+STATIC['/public-art/furniture.png'] = 'public-art/furniture.png';
+STATIC['/public-art/chibi-sit.png'] = 'public-art/chibi-sit.png';
+
 STATIC['/public-art/cozy-room.png'] = 'public-art/cozy-room.png';
 STATIC['/public-art/chibi-walk.png'] = 'public-art/chibi-walk.png';
 TYPES['.png'] = 'image/png';

@@ -254,14 +254,18 @@
     goTo(W.playerSeats[kind]);
   }
   function hostSeat(target) {
-    if (target?.seat !== 'admin' || !window.FirmaLife?.companions.some(a=>a.fixedHost)) return false;
-    clearMovement();agentDetail('igor-host');return true;
+    if (target?.seat !== 'admin' || !window.FirmaLife?.companions.some((a) => a.fixedHost))
+      return false;
+    clearMovement();
+    agentDetail('igor-host');
+    return true;
   }
   function goTo(target) {
     if (hostSeat(target)) return;
     stand();
     const destination = target.agent ? positions.get(target.agent) : target;
     if (!destination) return;
+    hudKey = '';
     const end = target.agent ? W.nearest(destination) : { x: target.x, y: target.y };
     route = W.path(state.player, end);
     pending = target;
@@ -318,7 +322,7 @@
         ...s,
         distance: Math.hypot(p.x - s.x, p.y - s.y),
       }));
-    for (const a of (window.FirmaLife?.roster(state) || state.agents)) {
+    for (const a of window.FirmaLife?.roster(state) || state.agents) {
       const pos = positions.get(a.id);
       if (pos && pos.visible !== false)
         candidates.push({
@@ -348,6 +352,12 @@
       syncMode();
     }
     walking = false;
+    state.player.seatAmount = window.FirmaSeatMotion.advance(
+      state.player.seatAmount || 0,
+      !!seated,
+      dt,
+      reducedMotion.matches || scenePrefs().reduceMotion,
+    );
     if ($('modal').open || ui.view !== 'office' || document.hidden) return;
     const p = state.player,
       before = { x: p.x, y: p.y };
@@ -362,9 +372,11 @@
     }
     if (dx || dy) {
       stand();
+      if (p.seatAmount > 0) return;
       const length = Math.hypot(dx, dy);
       Object.assign(p, W.move(p, (dx / length) * 175 * dt, (dy / length) * 175 * dt));
     } else if (route.length) {
+      if (p.seatAmount > 0) return;
       let budget = 175 * dt;
       while (route.length && budget > 0.01) {
         const next = route[0],
@@ -396,6 +408,7 @@
           }
         }
         activate(target);
+        hudKey = '';
       }
     }
     const mx = p.x - before.x,
@@ -499,11 +512,13 @@
       hair: p.hair,
       walking,
       time,
-      workReduced: reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
+      workReduced:
+        reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting: !!seated,
+      seatAmount: p.seatAmount || 0,
       facing,
       player: true,
-      animation: seated === 'rest' ? 'coffee' : 'idle',
+      animation: seated === 'rest' ? 'coffee' : seated ? 'typing' : 'idle',
     });
     ctx.restore();
   }
@@ -548,9 +563,14 @@
       phase,
       walking,
       time,
-      workReduced: reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
+      workReduced:
+        reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion,
       sitting,
-      facing: p.facing || (sitting && p.mode === 'desk' ? 'down' : 'down'),
+      seatAmount: p.seatAmount,
+      facing:
+        p.seatAmount > 0
+          ? p.seatFacing
+          : p.facing || (sitting && p.mode === 'desk' ? 'down' : 'down'),
       animation: window.FirmaLife?.animation(p.mode) || animation,
       colleagueAppearance: window.FirmaLife?.appearance(state, a),
     });
@@ -664,9 +684,11 @@
     const motionOff =
       reducedMotion.matches || state.preferences?.reducedMotion || scenePrefs().reduceMotion;
     if (!ui.paused && !motionOff) animationTime += dt * state.speed;
-    window.FirmaLife?.advance(dt, {reduced: motionOff, paused: ui.paused || document.hidden});
+    window.FirmaLife?.advance(dt, {
+      reduced: motionOff,
+      paused: ui.paused || document.hidden,
+    });
     const visualTime = motionOff ? 0 : timestamp / 1000;
-    if(window.FirmaRoom?.active){requestAnimationFrame(draw);return;}
     const scopedState = sceneOptions().admin
       ? {
           ...state,
@@ -785,12 +807,27 @@
         p.targetKey = '';
         return { a, p, moving: false, sitting: false, hidden: true };
       }
+      if (p.rising) {
+        p.seatAmount = window.FirmaSeatMotion.advance(
+          p.seatAmount || 0,
+          false,
+          ui.paused ? 0 : dt,
+          motionOff,
+        );
+        if (p.seatAmount <= 0) p.rising = false;
+      }
       if (targetKey !== p.targetKey) {
+        if (p.sitting) {
+          p.rising = true;
+          p.sitting = false;
+        }
         p.route = W.path(p, target);
         p.targetKey = targetKey;
       }
       if (p.route.length) {
-        let budget = (['entering', 'leaving'].includes(presence) ? 140 : (78 + String(a.id).length % 4 * 5)) * (ui.paused || motionOff ? 0 : dt);
+        let budget =
+          (['entering', 'leaving'].includes(presence) ? 140 : 78 + (String(a.id).length % 4) * 5) *
+          (ui.paused || motionOff || p.rising ? 0 : dt);
         while (p.route.length && budget > 0.01) {
           const point = p.route[0],
             distance = Math.hypot(point.x - p.x, point.y - p.y);
@@ -814,28 +851,45 @@
           if (amount >= distance - 0.01) p.route.shift();
         }
       }
-      const moving = !!p.route.length,
+      const moving = !!p.route.length && !p.rising,
         sitting =
-          !moving &&
+          !p.route.length &&
           Math.hypot(p.x - target.x, p.y - target.y) < 1 &&
           (mode === 'desk' || mode === 'rest');
       if (!moving && window.FirmaLife) {
-        if (mode === 'chat') p.facing = window.FirmaLife.current().story.ids.indexOf(a.id) === 0 ? 'right' : 'left';
+        if (mode === 'chat')
+          p.facing = window.FirmaLife.current().story.ids.indexOf(a.id) === 0 ? 'right' : 'left';
         else if (mode === 'board' || mode === 'coffee') p.facing = 'up';
         else if (mode === 'plant') p.facing = 'right';
       }
-      p.sitting = sitting;
+      p.sitting = sitting && !p.rising;
+      if (!p.rising)
+        p.seatAmount = window.FirmaSeatMotion.advance(
+          p.seatAmount || 0,
+          p.sitting,
+          ui.paused ? 0 : dt,
+          motionOff,
+        );
+      if (p.sitting) p.seatFacing = mode === 'desk' ? 'up' : 'down';
       return { a, p, moving, sitting };
     }
     for (const id of positions.keys())
-      if (id !== leader.id && !(window.FirmaLife?.roster(state) || state.agents).some((a) => a.id === id)) positions.delete(id);
+      if (
+        id !== leader.id &&
+        !(window.FirmaLife?.roster(state) || state.agents).some((a) => a.id === id)
+      )
+        positions.delete(id);
     const renderAgents = (window.FirmaLife?.roster(state) || state.agents)
       .map((a) => advanceActor(a, targetFor(a)))
       .filter((actor) => !actor.hidden);
     const codex = advanceActor(leader, targetFor(leader));
     if (!codex.hidden) renderAgents.push(codex);
     renderAgents.sort((a, b) => a.p.y - b.p.y);
-    const objects = window.FirmaVillage.objects(W, state, scenePrefs(), {time:animationTime,actors:renderAgents,reduced:motionOff}),
+    const objects = window.FirmaVillage.objects(W, state, scenePrefs(), {
+        time: animationTime,
+        actors: renderAgents,
+        reduced: motionOff,
+      }),
       drawables = [
         ...objects,
         {
@@ -857,16 +911,28 @@
         layer: 1,
         draw: () => {
           ctx.save();
-          ctx.translate(p.x, p.y - (sitting && (a.fixedHost || a.id === leader.id) ? 10 : 0));
+          ctx.translate(p.x, p.y);
           const scale = W.layoutScale * (a.id === 'codex-leader' || a.fixedHost ? 1 : 0.85);
           ctx.scale(scale, scale);
           character(0, 0, a, animationTime, moving, sitting, {
             ...p,
-            facing: !moving && sitting && p.mode === 'desk' ? 'up' : p.facing,
+            facing: p.seatAmount > 0 ? p.seatFacing : p.facing,
           });
           ctx.restore();
         },
       });
+      if (p.mode === 'desk' && p.seatAmount > 0.45 && window.FirmaOfficeArt?.ready)
+        drawables.push({
+          id: 'chair-front:' + a.id,
+          y: p.y + 14,
+          layer: 2,
+          draw: () => {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, (p.seatAmount - 0.45) / 0.35);
+            window.FirmaOfficeArt.draw(ctx, 3, p.x - 11, p.y - 7, 22, 23);
+            ctx.restore();
+          },
+        });
       hitItems.push({
         id: 'actor:' + a.id,
         y: p.y + 10,
@@ -914,7 +980,13 @@
         selected =
           hovered?.target?.agent === a.id ||
           (hovered?.target?.id === 'leadership' && a.id === leader.id);
-      if (scenePrefs().mode === 'work' || selected || a.fixedHost || a.id === leader.id) nameplate(a.name, p.x, p.y + (a.fixedHost || a.id === leader.id ? 8 : 19), !!a.fixedHost || a.id === leader.id);
+      if (scenePrefs().mode === 'work' || selected || a.fixedHost || a.id === leader.id)
+        nameplate(
+          a.name,
+          p.x,
+          p.y + (a.fixedHost || a.id === leader.id ? 8 : 19),
+          !!a.fixedHost || a.id === leader.id,
+        );
       if (status.symbol && (scenePrefs().mode === 'work' || selected)) {
         const x = p.x + 8,
           y = p.y - 49;
@@ -931,7 +1003,9 @@
     }
     nameplate(state.player.name, state.player.x, state.player.y + 20, true);
     window.FirmaLife?.record(state, positions);
-    for (const speech of (window.FirmaLife ? window.FirmaLife.speech(state, positions) : window.FirmaEngine.dialogue(state))) {
+    for (const speech of window.FirmaLife
+      ? window.FirmaLife.speech(state, positions)
+      : window.FirmaEngine.dialogue(state)) {
       if (speech.taskId && !window.FirmaScene.resolveTask(state, speech.taskId, sceneOptions()))
         continue;
       const p = positions.get(speech.id);
@@ -1034,6 +1108,8 @@
           y: p.y,
           mode: p.mode,
           sitting: !!p.sitting,
+          seatAmount: p.seatAmount || 0,
+          rising: !!p.rising,
           moving: !!p.route.length,
         }));
     },

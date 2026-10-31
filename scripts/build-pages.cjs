@@ -5,15 +5,16 @@ const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, '_site');
 fs.mkdirSync(output, { recursive: true });
+for (const old of ['cozy-room.js','cozy-room-model.js']) fs.rmSync(path.join(output,old),{force:true});
 // Only explicitly public browser files are included. No server, credentials or project data.
 const files = fs.readdirSync(root).filter(name => /\.(css|js|svg)$/.test(name) && name !== 'access.js');
 const digest = crypto.createHash('sha256');
 for (const name of files) digest.update(fs.readFileSync(path.join(root, name)));
 digest.update(fs.readFileSync(path.join(root, 'demo', 'access.js')));
-for (const name of ['cozy-room.png','chibi-walk.png']) digest.update(fs.readFileSync(path.join(root,'public-art',name)));
+for (const name of ['cozy-room.png','chibi-walk.png','furniture.png','chibi-sit.png']) digest.update(fs.readFileSync(path.join(root,'public-art',name)));
 const revision = digest.digest('hex').slice(0, 12);
 fs.mkdirSync(path.join(output,'public-art'),{recursive:true});
-for (const name of ['cozy-room.png','chibi-walk.png']) fs.copyFileSync(path.join(root,'public-art',name),path.join(output,'public-art',name));
+for (const name of ['cozy-room.png','chibi-walk.png','furniture.png','chibi-sit.png']) fs.copyFileSync(path.join(root,'public-art',name),path.join(output,'public-art',name));
 for (const name of files) fs.copyFileSync(path.join(root, name), path.join(output, name));
 let demo = fs.readFileSync(path.join(root, 'demo', 'access.js'), 'utf8');
 demo = demo.replace('script.src = src;', `script.src = src + '?v=${revision}';`);
