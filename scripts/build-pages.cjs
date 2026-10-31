@@ -1,0 +1,21 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const output = path.join(root, '_site');
+fs.mkdirSync(output, { recursive: true });
+// Only explicitly public browser files are included. No server, credentials or project data.
+const files = fs.readdirSync(root).filter(name => /\.(css|js)$/.test(name) && name !== 'access.js');
+for (const name of files) fs.copyFileSync(path.join(root, name), path.join(output, name));
+fs.copyFileSync(path.join(root, 'demo', 'access.js'), path.join(output, 'demo-access.js'));
+let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+html = html.replace('<title>Firma — seu escritório de IAs</title>', '<title>Firma — Escritório de IAs · Demonstração</title>');
+html = html.replace('src="access.js"', 'src="demo-access.js"');
+html = html.replace('</head>', '<meta name="description" content="Demonstração interativa do escritório de IAs em 2D de Igor Silva. Cenário, personagens e simulação local, sem login ou chamadas de IA."></head>');
+fs.writeFileSync(path.join(output, 'index.html'), html);
+let ui = fs.readFileSync(path.join(output, 'ui.js'), 'utf8');
+ui = ui.replace("$('connection-label').textContent='Ao vivo'", "$('connection-label').textContent='Simulação local'");
+ui = ui.replaceAll('Visita em tempo real', 'Demonstração local');
+fs.writeFileSync(path.join(output, 'ui.js'), ui);
+fs.writeFileSync(path.join(output, '.nojekyll'), '');
+console.log('Public preview prepared in _site/');

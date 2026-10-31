@@ -21,3 +21,6 @@ firma-backup-*.json
 # Admin credentials, private setup link and server office data
 .firma-private/
 /projects/
+
+# Public browser preview generated for GitHub Pages
+_site/

@@ -1,5 +1,13 @@
 # Firma — escritório de IAs em 2D · v0.13
 
+## Demonstração online
+
+[Abrir demonstração do Escritório de IAs](https://igorsilvadev01.github.io/Escrit-rio-de-IAs/).
+
+A versão pública permite explorar o cenário 2D, os personagens e os diálogos demonstrativos com dados de exemplo e simulação local. Não usa login, contas, arquivos privados ou chamadas reais de IA. Administração, projetos, arquivos, terminal e integrações precisam da versão Node.js descrita abaixo.
+
+O GitHub Actions publica somente os arquivos de navegador selecionados por `scripts/build-pages.cjs`. Para gerar a demonstração localmente, execute `node scripts/build-pages.cjs` e sirva a pasta `_site/`. O servidor e seus recursos continuam preservados no projeto original.
+
 O escritório agora tem profundidade compartilhada entre móveis e personagens, setores com identidade própria, poses de trabalho e café e modos **Ambiente / Trabalho**. Use **Ver tudo / Seguir / Minha mesa** para a câmera e **Cenário e equipe** para personalizar materiais, iluminação, som opcional e acessar colegas. Avisos do projeto ativo abrem suas tarefas. Detalhes e verificação: [Evolução visual aplicada](docs/EVOLUCAO-VISUAL-ESCRITORIO.md).
 
 Guia de uso, capacidades e limites desta versão: [Capacidades atuais](docs/CAPACIDADES-ATUAIS.md). A pesquisa e o quadro de implementação das 16 frentes estão no [Plano de evolução da Firma](docs/EVOLUCAO-DO-PROJETO.md). Documentos com versões antigas no nome são registros históricos.
