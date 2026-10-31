@@ -1,0 +1,404 @@
+/* Indoor pixel studio palette, taken from the office panel in the portfolio thumbnail. */
+:root {
+  --bg: #233142;
+  --panel: #f1eee6;
+  --line: #a3acaf;
+  --text: #283748;
+  --muted: #657482;
+  --green: #6b8992;
+  color-scheme: light;
+}
+body,
+main.office-shell,
+.game-world {
+  background: #233142;
+  color: #e9e5da;
+}
+body.playing .topbar.game-topbar {
+  background: #263547;
+  border-bottom: 1px solid #526579;
+  box-shadow: 0 3px 0 #111b2722;
+}
+.game-brand strong {
+  color: #f0ede4;
+}
+.game-brand small {
+  color: #a5b4c2;
+}
+.game-pulse,
+.game-pulse b,
+.game-pulse #stat-time {
+  color: #c4d1db;
+}
+.game-pulse .status-dot {
+  background: #a3bb8c;
+}
+.office-status {
+  background: #3e555d;
+  color: #d4e3d9;
+  border: 1px solid #638079;
+}
+.game-topbar .access-role,
+.game-topbar .session-exit {
+  background: #34475b;
+  border: 1px solid #60778d;
+  color: #d9e3eb;
+  border-radius: 6px;
+}
+.game-world {
+  padding: 12px 14px;
+}
+.game-controls {
+  color: #c6d0d8;
+}
+.player-chip strong,
+.visitor #player-name {
+  color: #eeeadd;
+}
+.player-chip small {
+  color: #aebfc9;
+}
+.player-chip > i {
+  background: #9bb5c7;
+  box-shadow: 0 0 0 4px #9bb5c722;
+}
+#office-canvas {
+  background: #233142;
+  image-rendering: pixelated;
+}
+body.playing .office-scene {
+  background: #bc9063;
+  border: 3px solid #53677c;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px #1a2737,
+    0 12px 30px #111a2733;
+}
+.office-scene .scene-label,
+.office-scene .scene-mission,
+.office-scene .scene-hint,
+.scene-selection {
+  background: #f1ede4f5;
+  color: #344657;
+  border: 1px solid #7b8e9d;
+  border-radius: 5px;
+  box-shadow: 2px 3px 0 #25303e22;
+}
+.scene-label #player-location,
+.scene-label #connection-label,
+.scene-mission span,
+.scene-mission strong,
+.scene-mission small {
+  color: #445b6d;
+}
+.scene-label .status-dot {
+  background: #6e8e7f;
+}
+.scene-view-toolbar {
+  background: #eee9ddf5;
+  border: 1px solid #6e8297;
+  border-radius: 6px;
+  box-shadow: 2px 3px 0 #25303e22;
+}
+.scene-view-toolbar button {
+  color: #43566a;
+}
+.scene-view-toolbar button[aria-pressed='true'] {
+  background: #4a657f;
+  color: #f4f0e8;
+  border-color: #35495e;
+  border-radius: 4px;
+}
+.scene-tools {
+  color: #e1e5e4;
+}
+.scene-tools > summary,
+.game-controls .office-destinations > summary {
+  background: #e9e4d9;
+  color: #344b60;
+  border: 1px solid #8293a1;
+  border-radius: 6px;
+  box-shadow: inset 0 1px #fff8;
+}
+.scene-tools-popover,
+.navigation-popover {
+  background: #f1ede4;
+  color: #344657;
+  border: 1px solid #758b9d;
+  border-radius: 8px;
+  box-shadow: 0 12px 35px #111b2744;
+}
+.scene-tools-popover h3,
+.scene-tools-popover p,
+.scene-tools-popover small,
+#scene-team small,
+#scene-team button,
+.navigation-popover p,
+.navigation-note {
+  color: #52677a;
+}
+.scene-tools-popover > button,
+.navigation-popover #world-destinations button,
+.navigation-popover .zoom-controls {
+  background: #dce3e5;
+  color: #344b60;
+  border: 1px solid #9dabb5;
+  border-radius: 5px;
+}
+.primary-button,
+#toast,
+.game-controls > #interact-button {
+  background: #4d6b88;
+  color: #f7f4eb;
+  border: 1px solid #718ba3;
+  border-radius: 6px;
+  box-shadow: inset 0 1px #ffffff18;
+}
+.primary-button:hover {
+  background: #3e5a76;
+}
+.secondary-button,
+#visitor-appearance,
+#office-life-button {
+  background: #ede9df;
+  color: #344b60;
+  border: 1px solid #91a0aa;
+  border-radius: 6px;
+  box-shadow: inset 0 1px #fff8;
+}
+.game-controls > #interact-button:disabled {
+  background: #34475b;
+  color: #aabac8;
+  border: 1px solid #566d84;
+}
+.office-scene .touch-controls button {
+  background: #e9e4d9;
+  color: #344b60;
+  border-color: #8293a1;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #88a9c7;
+  outline-offset: 3px;
+}
+/* Panels keep the same hierarchy and controls with paper and slate surfaces. */
+dialog,
+#modal.management-dialog,
+#office-life-panel,
+.visitor-avatar {
+  background: #f5f1e8;
+  color: #293b4d;
+  border: 1px solid #8b9ca9;
+  box-shadow: 0 30px 90px #111a2766;
+}
+dialog::backdrop {
+  background: #172436a8;
+  backdrop-filter: blur(3px);
+}
+#modal.management-dialog .modal-heading,
+#modal.management-dialog .modal-actions,
+.visitor-avatar header,
+.visitor-avatar footer,
+#office-life-panel > header {
+  background: #eee9de;
+  border-color: #c2c7c5;
+}
+#modal.management-dialog .modal-heading h2,
+.visitor-avatar h2,
+#office-life-panel h2 {
+  color: #2d4053;
+}
+.avatar-eyebrow {
+  color: #607e98;
+}
+.avatar-stage {
+  background: linear-gradient(140deg, #283b50, #4c657f);
+  border-color: #8aa1b5;
+}
+.avatar-stage span,
+.avatar-stage p {
+  color: #d1dde5;
+}
+.avatar-close {
+  background: #f5f1e8;
+  color: #536b7e;
+  border-color: #b7c1c5;
+}
+.visitor-avatar footer {
+  background: #f5f1e8;
+}
+.avatar-fields input,
+.avatar-fields select,
+dialog input,
+dialog select,
+dialog textarea {
+  background: #fbf8f0;
+  border-color: #a7b4bd;
+  color: #31475b;
+}
+.avatar-fields fieldset {
+  border-color: #bcc5c8;
+}
+.avatar-fields legend {
+  color: #4f687e;
+}
+#modal .manage-nav {
+  background: #e1e5e3;
+  border-color: #b7c1c5;
+}
+#modal .manage-nav button[aria-current='page'] {
+  background: #4d6b88;
+  border-color: #4d6b88;
+  color: #fff6e9;
+}
+#modal .manage-nav button:hover {
+  background: #d2dce1;
+  color: #31475b;
+}
+#modal .manage-summary button,
+#modal .manage-summary button:first-child,
+#modal .manage-next,
+#modal .manage-list,
+#modal .manage-person,
+#modal .manage-tools section,
+#modal .manage-advanced,
+#modal .manage-delivery pre {
+  background: #e9e8e0;
+  border-color: #bbc5c9;
+  color: #3c5368;
+}
+#modal .manage-summary b {
+  color: #4a6985;
+}
+#modal .manage-task:hover,
+#modal .manage-person:hover {
+  background: #dde4e5;
+}
+.life-note {
+  background: #e1e5e2;
+  color: #52677a;
+}
+.life-message {
+  background: #e8ece9;
+  border-left-color: #7895ad;
+}
+.life-message strong,
+.life-panel-grid summary {
+  color: #4c6d88;
+}
+.life-message p,
+#life-history > p {
+  color: #435c70;
+}
+.life-colleague {
+  border-color: #c4cccb;
+}
+#life-current {
+  background: #344e68;
+  color: #eeeadd;
+}
+.life-panel-grid details {
+  border-color: #bbc6ca;
+}
+/* The entrance repeats the miniature's wood / slate / blue glass language. */
+body.gated,
+.access-gate {
+  background: #233142;
+}
+.access-gate .access-story {
+  background: transparent;
+}
+.access-story h1 {
+  color: #f2eee4;
+}
+.access-story h1 em {
+  color: #aac4d7;
+}
+.access-story > p,
+.access-story .access-eyebrow,
+.access-story .access-caption {
+  color: #b9c9d4;
+}
+.access-gate .access-card {
+  background: #f2eee4;
+  color: #2e4357;
+  border-color: #8193a3;
+  box-shadow: 0 24px 60px #111a2733;
+  border-radius: 12px;
+}
+.access-card #access-heading {
+  color: #2e4357;
+}
+.access-card .access-card-tag {
+  background: #dfe6e5;
+  color: #4f6b82;
+  border-color: #b3c1c6;
+}
+.access-card .access-choice,
+.access-card .access-choice:first-child {
+  background: #e3e7e4;
+  color: #344b60;
+  border: 1px solid #a5b7c0;
+  border-radius: 7px;
+}
+.access-card .access-choice:hover {
+  background: #d8e1e3;
+  border-color: #738fa6;
+}
+.access-card .access-choice > span:first-child {
+  background: #4d6b88;
+  color: #f5f0e6;
+  border-color: #6b879e;
+  border-radius: 6px;
+}
+.access-card .access-choice strong {
+  color: #344b60;
+}
+.access-card .access-choice small,
+.access-card #access-description,
+.access-card #access-status,
+.access-card .access-footnote {
+  color: #5e7384;
+}
+.access-card .primary-button {
+  background: #4d6b88;
+  color: #fff7e9;
+  border-color: #6b879e;
+}
+.access-story .access-office {
+  background: repeating-linear-gradient(0deg, #bd9369 0 12px, #9c744e 12px 14px);
+  border: 4px solid #53677b;
+  border-bottom: 10px solid #35485c;
+  box-shadow: 5px 6px #14213533;
+  border-radius: 4px;
+}
+.access-story .access-window {
+  background: #a5b9cc;
+  border-color: #536b82;
+  box-shadow: inset 0 0 0 2px #ccd6db;
+}
+.access-window:after {
+  background: #536b82;
+}
+.access-story .access-desk {
+  background: #d1ad80;
+  border-color: #61513e;
+}
+.access-story .access-desk i {
+  background: #35485c;
+  border-color: #25313e;
+}
+@media (max-width: 640px) {
+  .game-world {
+    padding: 6px;
+  }
+  body.playing .office-scene {
+    border-width: 2px;
+  }
+  .game-topbar .topbar-right {
+    gap: 6px;
+  }
+}

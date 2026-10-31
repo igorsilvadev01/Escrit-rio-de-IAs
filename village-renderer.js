@@ -1,21 +1,21 @@
-/* Original woodland studio artwork. Cached floor; objects share actors' depth order. */
+/* Warm indoor pixel studio, based on the portfolio thumbnail. Geometry and depth order are preserved. */
 (() => {
   'use strict';
-  const ink = '#453c32',
-    paper = '#f4f7ff';
+  const ink = '#26313e',
+    paper = '#f1eee4';
   let groundCache = null,
     groundKey = '';
   const palettes = {
-    oak: ['#835c40', '#c69b68', '#e1bd87'],
-    walnut: ['#574635', '#937450', '#bea078'],
-    cream: ['#998263', '#ddd0ab', '#f3e6c7'],
+    oak: ['#463c34', '#bd9368', '#dab78b'],
+    walnut: ['#3b322e', '#9c7554', '#c29b72'],
+    cream: ['#51483d', '#d0b184', '#e2c79d'],
   };
   const accents = {
-    planning: '#728fdb',
-    development: '#3455f5',
-    testing: '#68a7ca',
-    publishing: '#8c82d4',
-    leadership: '#6174be',
+    planning: '#718398',
+    development: '#536b86',
+    testing: '#6b8b87',
+    publishing: '#7a7c92',
+    leadership: '#536b86',
   };
   function painter(ctx) {
     return {
@@ -35,97 +35,203 @@
     const { box } = painter(ctx);
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(small ? 0.65 : 1, small ? 0.65 : 1);
-    box(-6, 0, 13, 11, '#74513e');
-    box(-7, -1, 15, 4, '#bc8860');
-    box(-1, -17, 3, 17, '#526c42');
-    box(-10, -15, 9, 6, '#648b50');
-    box(1, -22, 8, 8, '#8aa85d');
-    box(2, -12, 10, 6, '#799b55');
-    box(-7, -25, 7, 8, '#456743');
-    box(-5, -23, 3, 3, '#a6bc75');
+    ctx.scale(small ? 0.72 : 1, small ? 0.72 : 1);
+    box(-11, 11, 25, 4, '#292a2630');
+    box(-9, -1, 19, 15, '#243241');
+    box(-7, 1, 15, 10, '#4b6883');
+    box(-7, 1, 3, 9, '#6b869d');
+    box(-11, -3, 23, 5, '#273b4f');
+    box(-9, -3, 18, 2, '#7c91a0');
+    box(-7, -5, 15, 3, '#55422f');
+    box(-1, -27, 3, 23, '#405a38');
+    box(-9, -23, 9, 4, '#405a38');
+    box(1, -30, 9, 4, '#405a38');
+    box(-17, -25, 13, 10, '#345339');
+    box(-18, -23, 7, 4, '#6d9150');
+    box(-13, -29, 10, 7, '#71964d');
+    box(3, -32, 12, 10, '#4d733c');
+    box(8, -30, 9, 5, '#88a85a');
+    box(3, -37, 7, 8, '#73984e');
+    box(-10, -40, 10, 14, '#648843');
+    box(-9, -42, 6, 8, '#96ad65');
+    box(-3, -33, 8, 13, '#779a4f');
+    box(3, -21, 14, 11, '#3b6039');
+    box(8, -23, 8, 6, '#84a35b');
+    box(-13, -14, 12, 9, '#547b42');
+    box(-12, -15, 5, 3, '#91ab65');
+    box(0, -17, 7, 9, '#72964a');
     ctx.restore();
+  }
+  function windowPanel(ctx, x, y, w, h) {
+    const { box } = painter(ctx);
+    box(x + 2, y + 3, w, h, '#4c535a');
+    box(x, y, w, h, '#3b4652');
+    box(x + 3, y + 3, w - 6, h - 7, '#9eb2c7');
+    box(x + 4, y + 4, w - 8, Math.floor(h * 0.43), '#aebfce');
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x + 4, y + 4, w - 8, h - 9);
+    ctx.clip();
+    ctx.fillStyle = '#8c9eaf';
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - 7);
+    ctx.lineTo(x + w * 0.2, y + h * 0.38);
+    ctx.lineTo(x + w * 0.39, y + h * 0.67);
+    ctx.lineTo(x + w * 0.65, y + h * 0.28);
+    ctx.lineTo(x + w, y + h * 0.72);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#6f839b';
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x + w * 0.31, y + h * 0.64);
+    ctx.lineTo(x + w * 0.49, y + h * 0.79);
+    ctx.lineTo(x + w * 0.84, y + h * 0.43);
+    ctx.lineTo(x + w, y + h * 0.62);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#e4edf232';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.52, y + 3);
+    ctx.lineTo(x + w * 0.72, y + 3);
+    ctx.lineTo(x + w * 0.23, y + h);
+    ctx.lineTo(x + w * 0.04, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    box(x + Math.floor(w * 0.49), y + 3, 3, h - 6, '#445567');
+    box(x + Math.floor(w * 0.49) + 1, y + 3, 1, h - 6, '#71869b');
+    box(x - 2, y + h - 5, w + 4, 5, '#607285');
+    box(x - 1, y + h - 4, w + 2, 1, '#a5afb5');
+  }
+  function bookshelf(ctx, x, y) {
+    const { box } = painter(ctx);
+    box(x - 22, y - 50, 44, 63, '#29343e');
+    box(x - 19, y - 47, 38, 57, '#9e754f');
+    box(x - 17, y - 45, 34, 52, '#3f4241');
+    const colors = ['#607f9e', '#b79769', '#8e5551', '#9eae91', '#536b83', '#c1b697'];
+    for (let row = 0; row < 3; row++) {
+      for (let j = 0; j < 6; j++) {
+        const h = 9 + ((row + j) % 3) * 2,
+          px = x - 15 + j * 5,
+          py = y - 33 + row * 17;
+        box(px, py - h, 3, h, colors[(j + row) % colors.length]);
+        box(px + 1, py - h + 2, 1, 2, '#d9d7c4');
+      }
+      box(x - 18, y - 32 + row * 17, 36, 3, '#bb9267');
+      box(x - 18, y - 29 + row * 17, 36, 1, '#614c3a');
+    }
+    box(x - 22, y - 51, 44, 3, '#c09a70');
+    box(x - 22, y + 9, 44, 4, '#2b3540');
+  }
+  function sofa(ctx, x, y, w = 65, h = 34) {
+    const { box } = painter(ctx);
+    box(x + 2, y + h - 1, w, 5, '#302c2938');
+    box(x + 4, y + h - 1, 4, 5, '#252a30');
+    box(x + w - 9, y + h - 1, 4, 5, '#252a30');
+    box(x, y, w, h, '#263440');
+    box(x + 2, y + 2, w - 4, h - 4, '#4d6075');
+    box(x + 5, y + 3, w - 10, Math.floor(h * 0.48), '#5d7084');
+    const count = w > 45 ? 3 : 2,
+      cushion = Math.floor((w - 14) / count);
+    for (let i = 0; i < count; i++) {
+      box(
+        x + 7 + i * cushion,
+        y + Math.floor(h * 0.5),
+        cushion - 1,
+        Math.floor(h * 0.4),
+        '#60748a',
+      );
+      box(x + 7 + i * cushion, y + Math.floor(h * 0.5), cushion - 1, 1, '#8290a0');
+    }
+    box(x + 2, y + 7, 5, h - 10, '#3d4e62');
+    box(x + w - 7, y + 7, 5, h - 10, '#3d4e62');
+    box(x + 2, y + 6, 5, 2, '#7c8a99');
+    box(x + w - 7, y + 6, 5, 2, '#7c8a99');
   }
   function paintGround(ctx, W, prefs) {
     const { box, label } = painter(ctx);
-    box(0, 0, W.width, W.height, '#c8d9f0');
-    for (let y = 0; y < W.height; y += 16)
-      for (let x = 0; x < W.width; x += 16) {
-        const n = (x * 13 + y * 7) % 97;
-        box(x, y, 16, 16, n < 32 ? '#cbdcf2' : n < 58 ? '#c5d7ed' : '#ceddf3');
-        if (n < 12) {
-          box(x + 5, y + 9, 2, 3, '#e3edfc');
-          box(x + 8, y + 7, 2, 5, '#b9cde9');
+    box(0, 0, W.width, W.height, '#273443');
+    // One continuous honey-oak floor, matching the miniature's indoor studio.
+    box(12, 45, W.width - 24, W.height - 57, '#bc9063');
+    for (let row = 0, y = 48; y < W.height - 12; y += 12, row++) {
+      box(15, y, W.width - 30, 11, ['#bd9369', '#b58a60', '#c29a70', '#ba8f64'][row % 4]);
+      box(15, y + 11, W.width - 30, 1, '#8f6949');
+      box(15, y, W.width - 30, 1, '#d2aa7f');
+      for (let x = 15 - (row % 3) * 27; x < W.width - 15; x += 82) {
+        if (x > 15) box(x, y, 1, 11, '#966d4b');
+        const gx = Math.max(18, x + 15);
+        if (gx < W.width - 40) {
+          box(gx, y + 7, 15, 1, '#a57a5238');
+          box(gx + 17, y + 3, 8, 1, '#e0b98b33');
         }
       }
-    box(28, 198, 575, 38, '#9db5d7');
-    box(30, 201, 571, 32, '#9bb0cf');
-    box(30, 204, 571, 26, '#d8e3f4');
-    box(260, 230, 25, 190, '#9bb0cf');
-    box(264, 230, 17, 190, '#d8e3f4');
-    for (const f of W.floor) {
-      box(f.x + 3, f.y + 6, f.w, f.h, '#53624244');
-      box(f.x - 2, f.y - 2, f.w + 4, f.h + 5, '#6c85af');
-      box(f.x, f.y, f.w, f.h, '#dce5f3');
-      for (let y = f.y; y < f.y + f.h; y += 11) {
-        box(f.x, y, f.w, 10, Math.floor(y / 11) % 2 ? '#e3eaf6' : '#edf2fa');
-        for (let x = f.x + 10 + (Math.floor(y / 11) % 2) * 23; x < f.x + f.w; x += 46)
-          box(x, y, 1, 10, '#c5d3e8');
-      }
     }
-    const rugs = {
-      sage: ['#6d7955', '#a8b388'],
-      clay: ['#9b7054', '#c5a17c'],
-      straw: ['#9e8c5c', '#d2c18a'],
-    };
+    // Slate walls and large mountain-view windows occupy the old scenic perimeter.
+    box(8, 3, W.width - 16, 48, '#929b9f');
+    box(11, 5, W.width - 22, 3, '#c2c3ba');
+    box(8, 47, W.width - 16, 5, '#46515b');
+    box(10, 52, W.width - 20, 3, '#c4bba5');
+    for (const [x, w] of [
+      [74, 163],
+      [252, 159],
+      [430, 177],
+    ])
+      windowPanel(ctx, x, 9, w, 40);
+    box(7, 53, 6, W.height - 61, '#53616c');
+    box(13, 55, 3, W.height - 68, '#b0a38e');
+    box(W.width - 13, 53, 6, W.height - 61, '#53616c');
+    box(W.width - 16, 55, 3, W.height - 68, '#b0a38e');
+    box(7, W.height - 12, W.width - 14, 5, '#73644f');
+    box(7, W.height - 7, W.width - 14, 4, '#273443');
+    // Quiet, warm daylight. No changing light flashes on the floor.
+    ctx.save();
+    ctx.fillStyle = '#f3dfb813';
+    for (const x of [80, 260, 440]) {
+      ctx.beginPath();
+      ctx.moveTo(x, 55);
+      ctx.lineTo(x + 110, 55);
+      ctx.lineTo(x + 72, 112);
+      ctx.lineTo(x - 35, 112);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
     for (const r of W.rooms) {
-      const c =
-        r.id === 'leadership'
-          ? rugs[prefs.rug]
-          : {
-              planning: rugs.sage,
-              development: rugs.straw,
-              testing: rugs.clay,
-              publishing: ['#89756e', '#b7a58e'],
-            }[r.id];
-      box(r.x + 6, r.y + 25, r.w - 12, r.h - 30, c[0]);
-      box(r.x + 8, r.y + 27, r.w - 16, r.h - 34, c[1]);
-      for (let x = r.x + 12; x < r.x + r.w - 12; x += 9) {
-        box(x, r.y + 28, 3, 1, c[0]);
-        box(x, r.y + r.h - 9, 3, 1, c[0]);
-      }
-      box(r.x + 11, r.y + 30, r.w - 22, 1, c[0]);
-      box(r.x + 5, r.y + 3, r.w - 10, 18, '#b18d61');
-      box(r.x + 6, r.y + 3, r.w - 12, 15, paper);
-      box(r.x + 9, r.y + 5, 11, 11, accents[r.id]);
-      label(r.number, r.x + 10, r.y + 13, 6);
-      label(r.id === 'leadership' ? 'IGOR + CODEX' : r.name.toUpperCase(), r.x + 25, r.y + 14, 8);
+      box(r.x + 4, r.y + 17, r.w - 8, 3, '#654d3a35');
+      box(r.x + 4, r.y + 2, r.w - 8, 17, '#354456');
+      box(r.x + 5, r.y + 3, r.w - 10, 1, '#82909b');
+      box(r.x + 7, r.y + 5, 12, 10, '#63778b');
+      label(r.number, r.x + 9, r.y + 13, 6, '#eee9dc');
+      label(
+        r.id === 'leadership' ? 'IGOR + CODEX' : r.name.toUpperCase(),
+        r.x + 25,
+        r.y + 14,
+        8,
+        '#eee9dc',
+      );
     }
     const rest = W.lounge;
-    box(rest.x + 3, rest.y + 5, rest.w, rest.h, '#52633d55');
-    box(rest.x, rest.y, rest.w, rest.h, '#8e9468');
-    box(rest.x + 2, rest.y + 2, rest.w - 4, rest.h - 4, '#c4c597');
-    box(rest.x + 6, rest.y + 6, rest.w - 12, rest.h - 12, '#d7d4ac');
-    label('CAFÉ & CONVERSA', rest.x + 10, rest.y + 15, 7, '#656a46');
-    box(49, 406, 150, 48, '#61794d');
-    box(54, 410, 140, 40, '#c4b483');
-    box(59, 414, 130, 30, '#6b9690');
-    box(63, 414, 124, 4, '#a6c2ac');
-    for (let i = 0; i < 8; i++) box(63 + i * 15, 425 + (i % 2) * 8, 9, 2, '#537f7b');
-    for (let i = 0; i < 43; i++) {
-      const x = 28 + ((i * 137) % (W.width - 60)),
-        y = 28 + ((i * 73) % 414);
-      if (
-        W.floor.some((f) => x > f.x - 8 && x < f.x + f.w + 8 && y > f.y - 8 && y < f.y + f.h + 8) ||
-        (x > 45 && x < 200 && y > 400)
-      )
-        continue;
-      box(x, y, 4, 4, '#e5e6bc');
-      box(x + 1, y + 1, 2, 2, '#cfaf64');
-    }
+    box(rest.x, rest.y, rest.w, rest.h, '#826c5355');
+    const rug = {
+      sage: ['#71808a', '#526779'],
+      clay: ['#a09484', '#766d66'],
+      straw: ['#ab9b80', '#8b7d66'],
+    }[prefs.rug] || ['#71808a', '#526779'];
+    box(rest.x + 2, rest.y + 2, rest.w - 4, rest.h - 4, rug[0]);
+    box(rest.x + 4, rest.y + 4, rest.w - 8, rest.h - 8, rug[1]);
+    for (let x = rest.x + 8; x < rest.x + rest.w - 8; x += 8)
+      box(x, rest.y + 5, 1, rest.h - 10, '#a4b0b314');
+    label('CAFÉ & CONVERSA', rest.x + 9, rest.y + 14, 7, '#e7e4d7');
+    // Lounge furniture reuses the old pond footprint; routes and collision boxes stay intact.
+    box(49, 406, 150, 48, '#354352');
+    box(51, 408, 146, 44, '#607486');
+    box(54, 410, 140, 1, '#9cabb3');
   }
   function ground(ctx, W, state, time, prefs) {
-    const key = [prefs.rug, W.width, W.height].join(':');
+    const key = ['indoor-studio-v1', W.width, W.height, prefs.material, prefs.rug].join(':');
     if (key !== groundKey) {
       groundCache = document.createElement('canvas');
       groundCache.width = W.width;
@@ -134,30 +240,11 @@
       groundKey = key;
     }
     ctx.drawImage(groundCache, 0, 0);
-    if (time && Math.floor(time) % 4 === 0) {
-      const { box } = painter(ctx);
-      box(77, 433, 4, 1, '#c8d9bc');
-      box(170, 421, 5, 1, '#c8d9bc');
-    }
   }
   function tree(ctx, x, y, i) {
-    const { box } = painter(ctx);
-    box(x - 24, y + 10, 49, 7, '#38472f33');
-    box(x - 6, y - 3, 12, 19, '#72573e');
-    box(x - 2, y - 2, 5, 18, '#a17a50');
-    box(x - 23, y - 33, 46, 27, '#3f583c');
-    box(x - 27, y - 24, 53, 16, '#3f583c');
-    box(x - 22, y - 37, 43, 27, '#547747');
-    box(x - 17, y - 43, 33, 25, '#759653');
-    box(x - 11, y - 43, 19, 6, '#94ac68');
-    box(x - 24, y - 23, 18, 9, '#65894c');
-    box(x + 7, y - 23, 17, 11, '#486b40');
-    box(x - 17, y - 34, 8, 3, '#9ab471');
-    box(x + 1, y - 12, 14, 4, '#4c6b40');
-    if (i % 3 === 0) {
-      box(x + 10, y - 27, 4, 4, '#d1aa5e');
-      box(x - 12, y - 17, 4, 4, '#e2c27b');
-    }
+    // Retain every original scenic anchor and depth/hit ID, with indoor furniture.
+    if (i === 0 || i === 6 || i === 13) bookshelf(ctx, x, y);
+    else plant(ctx, x, i < 6 ? 53 : y + 1, i < 6);
   }
   function desk(ctx, d, role, occupied, prefs, variant = 0, activity = null) {
     const { box, label } = painter(ctx),
@@ -172,28 +259,28 @@
     const cx = d.x + Math.floor(d.w / 2),
       screen = occupied
         ? {
-            planning: '#b8c99c',
-            development: '#bdb797',
-            testing: '#d2b290',
-            publishing: '#c6b0ab',
-            leadership: '#d5c38d',
+            planning: '#8da3b1',
+            development: '#728da5',
+            testing: '#87a1a2',
+            publishing: '#979eb3',
+            leadership: '#7d96ae',
           }[role]
-        : '#998f74';
+        : '#344354';
     const sx = d.w > 45 ? cx - 13 : cx - 10,
       sw = d.w > 45 ? 25 : 20;
     box(sx - 1, d.y - 12, sw + 2, 16, dark);
-    box(sx, d.y - 11, sw, 13, '#514f43');
+    box(sx, d.y - 11, sw, 13, '#24303e');
     box(sx + 2, d.y - 9, sw - 4, 9, screen);
     box(cx - 2, d.y + 2, 4, 4, dark);
     box(cx - 7, d.y + 5, 14, 2, dark);
-    box(cx - 10, d.y + 9, 20, 4, '#e3d6b8');
-    for (let i = 0; i < 5; i++) box(cx - 8 + i * 3, d.y + 10, 1, 1, '#9c927a');
+    box(cx - 10, d.y + 9, 20, 4, '#aab7bf');
+    for (let i = 0; i < 5; i++) box(cx - 8 + i * 3, d.y + 10, 1, 1, '#465769');
     if (occupied) {
       if (role === 'development') {
         box(sx + 4, d.y - 7, sw - 9, 1, '#657257');
         box(sx + 6, d.y - 4, sw - 11, 1, '#80744d');
         box(sx + 4, d.y - 1, sw - 12, 1, '#657257');
-        box(d.x + 2, d.y + 7, 4, 6, '#605c4c');
+        box(d.x + 2, d.y + 7, 4, 6, '#35495c');
       } else if (role === 'testing') {
         for (let i = 0; i < 3; i++) {
           box(sx + 3, d.y - 8 + i * 3, 2, 2, '#866346');
@@ -237,19 +324,24 @@
       if (prefs.lamp) {
         box(d.x + 5, d.y + 6, 7, 2, dark);
         box(d.x + 8, d.y - 6, 2, 13, dark);
-        box(d.x + 5, d.y - 9, 9, 5, '#e6c887');
+        box(d.x + 5, d.y - 9, 9, 5, '#b9c8cc');
       }
     }
   }
   function chair(ctx, p, color) {
     const { box } = painter(ctx);
-    box(p.x - 10, p.y + 10, 23, 5, '#51483233');
-    box(p.x - 7, p.y - 5, 14, 16, '#655a43');
-    box(p.x - 6, p.y - 5, 12, 8, color);
-    box(p.x - 8, p.y + 8, 17, 4, '#655a43');
-    box(p.x - 6, p.y + 8, 13, 2, '#e2d0a2');
-    box(p.x - 7, p.y + 12, 2, 3, '#655a43');
-    box(p.x + 6, p.y + 12, 2, 3, '#655a43');
+    box(p.x - 10, p.y + 10, 23, 4, '#302c2938');
+    box(p.x - 8, p.y - 6, 18, 17, '#253240');
+    box(p.x - 6, p.y - 5, 14, 10, '#52677e');
+    box(p.x - 6, p.y - 5, 14, 2, '#7e8e9e');
+    box(p.x - 9, p.y + 6, 20, 6, '#273746');
+    box(p.x - 7, p.y + 7, 16, 3, '#61758a');
+    box(p.x - 10, p.y + 3, 3, 7, '#35485d');
+    box(p.x + 8, p.y + 3, 3, 7, '#35485d');
+    box(p.x - 1, p.y + 12, 3, 3, '#2a3137');
+    box(p.x - 8, p.y + 15, 17, 2, '#303b46');
+    box(p.x - 9, p.y + 16, 3, 2, '#222d38');
+    box(p.x + 7, p.y + 16, 3, 2, '#222d38');
   }
   function objects(W, state, prefs, live = {}) {
     const actors = new Map((live.actors || []).map((a) => [a.a.id, a]));
@@ -313,18 +405,11 @@
     add('admin-desk', W.furniture.adminDesk.y + W.furniture.adminDesk.h + 8, (c) =>
       desk(c, W.furniture.adminDesk, 'development', true, prefs, 1, activityFor('igor-host')),
     );
-    add('codex-chair', W.leaderHome.y - 3, (c) => chair(c, W.leaderHome, '#b69d6b'));
-    add('admin-chair', W.playerSeats.admin.y - 3, (c) => chair(c, W.playerSeats.admin, '#8b9c70'));
+    add('codex-chair', W.leaderHome.y - 3, (c) => chair(c, W.leaderHome, '#4b5d73'));
+    add('admin-chair', W.playerSeats.admin.y - 3, (c) => chair(c, W.playerSeats.admin, '#4b5d73'));
     const rest = W.lounge;
     for (const [i, p] of [...rest.seats, W.playerSeats.rest].entries())
-      add('bench:' + i, p.y - 4, (c) => {
-        const { box } = painter(c);
-        box(p.x - 12, p.y - 7, 25, 17, '#796346');
-        box(p.x - 10, p.y - 6, 21, 6, '#d4bd8c');
-        box(p.x - 10, p.y + 2, 21, 5, '#b49a70');
-        box(p.x - 11, p.y + 8, 3, 5, '#796346');
-        box(p.x + 8, p.y + 8, 3, 5, '#796346');
-      });
+      add('bench:' + i, p.y - 4, (c) => sofa(c, p.x - 13, p.y - 8, 27, 21));
     for (let i = 0; i < 3; i++)
       add('life-plant-' + i, rest.y + 8 + i * 20, (c) =>
         plant(c, rest.x - 8, rest.y + 8 + i * 20, true),
@@ -335,9 +420,9 @@
       box(coffee.x + 3, coffee.y + 5, coffee.w, coffee.h, '#5a513833');
       box(coffee.x, coffee.y, coffee.w, coffee.h, '#8b6e4f');
       box(coffee.x + 2, coffee.y + 1, coffee.w - 4, coffee.h - 6, '#d9ba85');
-      box(coffee.x + 5, coffee.y - 12, 16, 18, '#514d3f');
-      box(coffee.x + 7, coffee.y - 10, 12, 4, '#b7ba90');
-      box(coffee.x + 8, coffee.y - 3, 9, 4, '#8b795d');
+      box(coffee.x + 5, coffee.y - 12, 16, 18, '#273442');
+      box(coffee.x + 7, coffee.y - 10, 12, 4, '#97aab8');
+      box(coffee.x + 8, coffee.y - 3, 9, 4, '#536675');
       box(coffee.x + 10, coffee.y + 4, 6, 4, paper);
       box(coffee.x + 27, coffee.y + 6, 4, 6, paper);
     });
@@ -345,29 +430,27 @@
       add('cafe-plant', coffee.y + coffee.h + 7, (c) =>
         plant(c, coffee.x + 31, coffee.y + 4, true),
       );
+    add('studio-sofa', 434, (c) => sofa(c, 54, 410, 65, 21));
+    add('studio-armchair', 449, (c) => sofa(c, 156, 410, 38, 34));
+    add('studio-table', 447, (c) => {
+      const { box } = painter(c);
+      box(70, 435, 33, 14, '#2b3642');
+      box(72, 437, 29, 10, '#718598');
+      box(75, 438, 9, 7, '#e9e6db');
+      box(76, 440, 6, 1, '#8a98a3');
+      box(92, 439, 5, 6, '#d2b48a');
+      box(93, 439, 3, 2, '#5c4637');
+    });
     add('bridge', 457, (c) => {
       const { box } = painter(c);
-      box(121, 405, 33, 51, '#806347');
-      box(124, 407, 27, 47, '#a98258');
-      for (let y = 409; y < 452; y += 7) {
-        box(125, y, 25, 5, '#d1ad7a');
-        box(126, y, 23, 1, '#ead0a0');
-      }
-    });
-    add('fence', 427, (c) => {
-      const { box } = painter(c);
-      for (let x = 304; x < 600; x += 36) {
-        box(x, 414, 28, 5, '#795e43');
-        box(x + 2, 412, 27, 3, '#b99a67');
-        box(x - 3, 404, 7, 22, '#795e43');
-        box(x - 2, 402, 5, 20, '#d7bb89');
-      }
+      box(122, 447, 29, 7, '#354555');
+      box(124, 448, 25, 4, '#6b8191');
     });
     add('entry', W.exit.y - 14, (c) => {
       const { box, label } = painter(c),
         open = state.office?.status === 'open';
-      box(W.exit.x - 14, W.exit.y - 42, 36, 23, '#786347');
-      box(W.exit.x - 12, W.exit.y - 40, 32, 19, open ? '#bbc899' : '#c7a17c');
+      box(W.exit.x - 14, W.exit.y - 42, 36, 23, '#354555');
+      box(W.exit.x - 12, W.exit.y - 40, 32, 19, open ? '#859b9c' : '#9d8c7b');
       label(open ? 'ABERTO' : 'FECHADO', W.exit.x - 10, W.exit.y - 28, 5);
     });
     return items;
@@ -446,12 +529,12 @@
       evening =
         prefs.lighting === 'evening' ||
         (prefs.lighting === 'auto' && state.office?.status !== 'open');
-    if (evening) box(0, 0, W.width, W.height, '#55433622');
+    if (evening) box(0, 0, W.width, W.height, '#16243b38');
     if (prefs.lamp)
       for (const d of Object.values(W.furniture)) {
         ctx.save();
         ctx.globalAlpha = evening ? 0.17 : 0.07;
-        ctx.fillStyle = '#ffe3a0';
+        ctx.fillStyle = '#ffe4b3';
         ctx.beginPath();
         ctx.ellipse(d.x + 10, d.y + 6, 32, 22, 0, 0, Math.PI * 2);
         ctx.fill();

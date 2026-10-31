@@ -95,3 +95,8 @@ As poses alternam digitação, mouse e leitura com ritmos individuais; monitores
 Referências de direção visual: [Gather — mesas e espaços de trabalho](https://support.gather.town/articles/2958572750-take-a-tour-of-an-office-on-gather) e [Pixel Agents — animações por atividade](https://github.com/bartoszkwiat/pixel-office). O desenho em Canvas é próprio, sem copiar sprites ou tilesets externos.
 
 Verificação: `node --test tests/workstation-animation.test.cjs`.
+
+
+### Tema do estúdio da miniatura
+
+A direção de arte do cenário segue o escritório em pixel art criado para a miniatura do portfólio: piso contínuo de madeira mel, janelas amplas de vidro azulado com paisagem, paredes cinza-azuladas, estantes com livros, vegetação em vasos azuis e assentos em azul-ardósia. Os setores, pontos de interação, obstáculos, rotas, personagens e animações conservam a geometria anterior. O renderer é compartilhado pela demonstração e pela versão completa; `studio-theme.css` aplica a mesma paleta aos controles e painéis.
