@@ -37,7 +37,8 @@
     window.FirmaAccess=access;started=true;
     document.body.classList.toggle('visitor',role==='visitor');$('access-role').textContent=role==='admin'?'ADMIN · '+session.username:'VISITANTE';$('session-exit').textContent=role==='admin'?'Sair':'Login';
     $('session-exit').onclick=()=>{if(role==='visitor')access.login();else access.logout().catch(e=>window.FirmaUI?.toast(e.message));};
-    await loadScript('activity.js');await loadScript('ui.js');await loadScript('ai-ui.js');if(role==='admin')await loadScript('company-ui.js');await loadScript('scene-controls.js');await loadScript('app.js');if(role==='admin')await loadScript('studio.js');$('access-gate').hidden=true;document.body.classList.remove('gated');
+    await loadScript('activity.js');await loadScript('ui.js');
+    await loadScript('office-life-ui.js');await loadScript('ai-ui.js');if(role==='admin')await loadScript('company-ui.js');await loadScript('scene-controls.js');await loadScript('app.js');if(role==='admin')await loadScript('studio.js');$('access-gate').hidden=true;document.body.classList.remove('gated');
   }
   async function enterAdmin(){
     session=await request('/api/session');

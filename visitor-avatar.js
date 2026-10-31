@@ -72,7 +72,7 @@
     appearance = normalize(JSON.parse(localStorage.getItem(key)));
   } catch {}
   function draw(ctx, o) {
-    const a = o.avatarPreview || appearance,
+    const a = o.avatarPreview || o.colleagueAppearance || appearance,
       t = o.time || 0,
       stride = o.walking ? Math.round(Math.sin(t * 13) * 2) : 0;
     const box = (x, y, w, h, c) => {
@@ -172,12 +172,37 @@
       box(-14, -32, 29, 4, a.hatColor);
       box(-9, -35, 19, 3, '#17233d');
     }
+    const beat = Math.floor(t * 3) % 2;
+    if (!o.walking && o.animation === 'typing') {
+      box(-8, -4, 6, 3 + beat, a.skin);
+      box(4, -4, 6, 4 - beat, a.skin);
+      box(-6, -2, 13, 2, '#b8c9ec');
+    }
+    if (!o.walking && o.animation === 'reading') {
+      box(-8, -6, 17, 12, '#3455f5');
+      box(-7, -5, 7, 9, '#f4f7ff');
+      box(1, -5, 7, 9, '#dbe5fa');
+    }
+    if (!o.walking && o.animation === 'coffee') {
+      box(9, -10 - beat, 7, 8, '#f4f7ff');
+      box(15, -9 - beat, 3, 5, '#8199c9');
+      box(11, -14 - beat, 1, 3, '#b8c9ec');
+    }
+    if (!o.walking && o.animation === 'talking') {
+      box(10, -11 - beat * 3, 5, 6, a.skin);
+    }
+    if (!o.walking && o.animation === 'watering') {
+      box(10, -4, 10, 7, '#5c9bbd');
+      box(18, -7, 6, 3, '#5c9bbd');
+      box(23, -5, 1, 3 + beat, '#9dc5f3');
+    }
     if (o.player) box(-3, -50, 7, 3, '#7395ff');
     ctx.restore();
   }
   const original = window.FirmaVillage.sprite;
   window.FirmaVillage.sprite = (ctx, o) => {
-    if (o.avatarPreview || (o.player && !window.FirmaAccess?.isAdmin)) draw(ctx, o);
+    if (o.avatarPreview || o.colleagueAppearance || (o.player && !window.FirmaAccess?.isAdmin))
+      draw(ctx, o);
     else original(ctx, o);
   };
   const dialog = document.createElement('dialog');

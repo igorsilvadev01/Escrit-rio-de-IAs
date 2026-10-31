@@ -1,17 +1,25 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, '_site');
 fs.mkdirSync(output, { recursive: true });
 // Only explicitly public browser files are included. No server, credentials or project data.
 const files = fs.readdirSync(root).filter(name => /\.(css|js)$/.test(name) && name !== 'access.js');
+const digest = crypto.createHash('sha256');
+for (const name of files) digest.update(fs.readFileSync(path.join(root, name)));
+digest.update(fs.readFileSync(path.join(root, 'demo', 'access.js')));
+const revision = digest.digest('hex').slice(0, 12);
 for (const name of files) fs.copyFileSync(path.join(root, name), path.join(output, name));
-fs.copyFileSync(path.join(root, 'demo', 'access.js'), path.join(output, 'demo-access.js'));
+let demo = fs.readFileSync(path.join(root, 'demo', 'access.js'), 'utf8');
+demo = demo.replace('script.src = src;', `script.src = src + '?v=${revision}';`);
+fs.writeFileSync(path.join(output, 'demo-access.js'), demo);
 let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 html = html.replace('<title>Firma — seu escritório de IAs</title>', '<title>Firma — Escritório de IAs · Demonstração</title>');
 html = html.replace('src="access.js"', 'src="demo-access.js"');
 html = html.replace('</head>', '<meta name="description" content="Demonstração interativa do escritório de IAs em 2D de Igor Silva. Cenário, personagens e simulação local, sem login ou chamadas de IA."></head>');
+html = html.replace(/(src|href)="([^":]+\.(?:js|css))"/g, (_, attr, file) => `${attr}="${file}?v=${revision}"`);
 fs.writeFileSync(path.join(output, 'index.html'), html);
 let ui = fs.readFileSync(path.join(output, 'ui.js'), 'utf8');
 ui = ui.replace("$('connection-label').textContent='Ao vivo'", "$('connection-label').textContent='Simulação local'");

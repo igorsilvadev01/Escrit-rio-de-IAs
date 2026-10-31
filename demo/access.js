@@ -45,7 +45,7 @@
       $('access-role').textContent = 'DEMONSTRAÇÃO';
       $('session-exit').textContent = 'Sobre a versão completa';
       $('session-exit').onclick = about;
-      for (const src of ['activity.js', 'ui.js', 'ai-ui.js', 'scene-controls.js', 'app.js']) await loadScript(src);
+      for (const src of ['activity.js', 'ui.js', 'office-life-ui.js', 'ai-ui.js', 'scene-controls.js', 'app.js']) await loadScript(src);
       $('connection-label').textContent = 'Simulação local';
       $('save-status').textContent = 'Demonstração · dados de exemplo';
       $('access-gate').hidden = true;
