@@ -16,7 +16,7 @@ let demo = fs.readFileSync(path.join(root, 'demo', 'access.js'), 'utf8');
 demo = demo.replace('script.src = src;', `script.src = src + '?v=${revision}';`);
 fs.writeFileSync(path.join(output, 'demo-access.js'), demo);
 let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-html = html.replace('<title>Firma — seu escritório de IAs</title>', '<title>Firma — Escritório de IAs · Demonstração</title>');
+html = html.replace('<title>Escritório do Igor</title>', '<title>Escritório do Igor · Demonstração</title>');
 html = html.replace('src="access.js"', 'src="demo-access.js"');
 html = html.replace('</head>', '<meta name="description" content="Demonstração interativa do escritório de IAs em 2D de Igor Silva. Cenário, personagens e simulação local, sem login ou chamadas de IA."></head>');
 html = html.replace(/(src|href)="([^":]+\.(?:js|css))"/g, (_, attr, file) => `${attr}="${file}?v=${revision}"`);

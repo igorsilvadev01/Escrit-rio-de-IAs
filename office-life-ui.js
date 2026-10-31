@@ -29,7 +29,7 @@
   dialog.id = 'office-life-panel';
   dialog.setAttribute('aria-labelledby', 'life-title');
   dialog.innerHTML =
-    '<header><div><span class="avatar-eyebrow">O DIA A DIA DA FIRMA</span><h2 id="life-title">Gente, ideias e conversas.</h2></div><button type="button" aria-label="Fechar equipe e conversas">×</button></header><p class="life-note">Rotinas e conversas roteirizadas do cenário. Elas não executam tarefas nem usam serviços de IA.</p><div class="life-panel-grid"><section><h3 id="life-roster-heading"></h3><div id="life-roster"></div></section><section><h3>Conversa em andamento</h3><div id="life-current"></div><h3>O que foi dito</h3><div id="life-history" role="log" aria-live="off"></div><details><summary>Ler todas as conversas</summary><div id="life-stories"></div></details></section></div>';
+    '<header><div><span class="avatar-eyebrow">O DIA A DIA DO ESCRITÓRIO</span><h2 id="life-title">Gente, ideias e conversas.</h2></div><button type="button" aria-label="Fechar equipe e conversas">×</button></header><p class="life-note">Rotinas e conversas roteirizadas do cenário. Elas não executam tarefas nem usam serviços de IA.</p><div class="life-panel-grid"><section><h3 id="life-roster-heading"></h3><div id="life-roster"></div></section><section><h3>Conversa em andamento</h3><div id="life-current"></div><h3>O que foi dito</h3><div id="life-history" role="log" aria-live="off"></div><details><summary>Ler todas as conversas</summary><div id="life-stories"></div></details></section></div>';
   document.body.append(dialog);
   dialog.querySelector('header button').onclick = () => dialog.close();
   const button = document.createElement('button');
