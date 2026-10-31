@@ -901,8 +901,8 @@
           )
         ) {
           placed.push(bounds);
-          rect(bounds.x, bounds.y, bounds.w, 11, force ? '#3455f5' : '#637caa');
-          rect(bounds.x + 1, bounds.y + 1, bounds.w - 2, 9, force ? '#edf2ff' : '#ffffff');
+          rect(bounds.x, bounds.y, bounds.w, 11, force ? '#536d86' : '#637c89');
+          rect(bounds.x + 1, bounds.y + 1, bounds.w - 2, 9, force ? '#eee9df' : '#f5f1e8');
           text(name.slice(0, 17), bounds.x + 4, bounds.y + 8, '#243b62', 7);
           return;
         }
@@ -918,7 +918,7 @@
         const x = p.x + 8,
           y = p.y - 49;
         rect(x, y, 14, 12, status.kind === 'error' ? '#9b5843' : '#756c46');
-        text(status.symbol, x + 3, y + 9, '#f4f7ff', 9);
+        text(status.symbol, x + 3, y + 9, '#f2eee4', 9);
         hitItems.push({
           id: 'badge:' + a.id,
           y: p.y + 100,
@@ -950,9 +950,9 @@
         height = lines.length * 10 + 10,
         x = Math.max(8, Math.min(W.width - width - 8, p.x - width / 2)),
         y = Math.max(8, p.y - 56 - height);
-      rect(x, y, width, height, '#3455f5');
-      rect(x + 2, y + 2, width - 4, height - 4, '#f4f7ff');
-      rect(p.x - 2, y + height, 4, 4, '#3455f5');
+      rect(x, y, width, height, '#536d86');
+      rect(x + 2, y + 2, width - 4, height - 4, '#f2eee4');
+      rect(p.x - 2, y + height, 4, 4, '#536d86');
       lines.forEach((s, i) => text(s, x + 7, y + 12 + i * 10, '#243b62', 8));
     }
     if (pointer && !$('modal').open && !window.FirmaStudio?.isOpen) {

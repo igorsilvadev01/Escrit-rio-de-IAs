@@ -103,7 +103,7 @@
     box(-11, o.sitting ? 9 : 11, 23, 4, '#101c3433');
     if (o.sitting) {
       box(-11, -11, 23, 17, '#243b62');
-      box(-10, -10, 21, 14, '#6e89bb');
+      box(-10, -10, 21, 14, '#4d6075');
     }
     if (a.hairStyle === 'long') box(-12, -31, 25, 28, a.hair);
     const leg = a.pantsStyle === 'wide' ? 9 : 6,
