@@ -15,6 +15,8 @@ STATIC['/company-ui.js']='company-ui.js';
 STATIC['/station.css']='station.css';
 STATIC['/village.css']='village.css';
 STATIC['/village-renderer.js']='village-renderer.js';STATIC['/scene-model.js']='scene-model.js';STATIC['/scene-controls.js']='scene-controls.js';
+STATIC['/visitor-avatar.js'] = 'visitor-avatar.js';
+STATIC['/portfolio-theme.css'] = 'portfolio-theme.css';
 const COOKIE='firma_session',SESSION_MS=8*60*60*1000;
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 // Capture the backend code at process start, so the launcher never reuses a stale instance.

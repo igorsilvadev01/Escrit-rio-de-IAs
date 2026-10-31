@@ -182,3 +182,8 @@ A verificação real no Chrome está em `tests/browser-rooms.cjs` e `tests/brows
 As escolhas de organização e as referências aplicadas estão em [INTERFACE-V0.5.md](docs/INTERFACE-V0.5.md). A visão de integração futura está em [INTEGRACAO-IA.md](docs/INTEGRACAO-IA.md).
 
 Esta versão roda localmente. Para visitas pela internet, é necessária hospedagem Node.js com HTTPS e armazenamento persistente; GitHub Pages sozinho não executa seu backend.
+
+
+### Identidade visual e visitante
+
+A interface usa azul cobalto, branco e azul-marinho, em continuidade com o portfólio. Antes de entrar, visitantes podem criar um personagem com nome, apresentação, tom de pele, roupas, calças, sapatos, cabelo e chapéu. A prévia é atualizada ao vivo e o botão **Meu personagem** permite mudar o visual durante a visita. A preferência é validada e salva apenas no navegador; não altera o personagem do administrador nem envia dados ao servidor.
