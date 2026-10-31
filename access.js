@@ -170,6 +170,7 @@
     };
     await loadScript('activity.js');
     await loadScript('ui.js');
+    await loadScript('office-life-ui.js');
     await loadScript('ai-ui.js');
     if (role === 'admin') await loadScript('company-ui.js');
     await loadScript('scene-controls.js');

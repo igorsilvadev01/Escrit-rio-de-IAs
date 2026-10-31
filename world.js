@@ -65,7 +65,7 @@
     },
     {
       id: 'leadership',
-      name: 'Você & Codex',
+      name: 'Igor & Codex',
       number: '05',
       color: '#d6bb72',
       x: 408,
@@ -111,8 +111,8 @@
   const playerSeats = {
     admin: {
       id: 'admin',
-      name: 'Sua cadeira ao lado do Codex',
-      verb: 'Sentar na sua mesa',
+      name: 'Mesa do Igor ao lado do Codex',
+      verb: 'Conhecer o Igor',
       x: 535,
       y: 246,
       seat: 'admin',

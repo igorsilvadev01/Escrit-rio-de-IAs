@@ -72,3 +72,26 @@ A primeira implantação deve usar **uma instância e um proprietário**, com ar
 - [Pesquisa que orientou esta atualização](docs/PROGRAMACAO-E-PRODUCAO.md).
 
 Documentos com versões anteriores no nome são registros históricos. Repositório: [igorsilvadev01/Escrit-rio-de-IAs](https://github.com/igorsilvadev01/Escrit-rio-de-IAs).
+
+
+### Identidade visual e visitante
+
+A interface usa azul cobalto, branco e azul-marinho, em continuidade com o portfólio. Antes de entrar, visitantes podem criar um personagem com nome, apresentação, tom de pele, roupas, calças, sapatos, cabelo e chapéu. A prévia é atualizada ao vivo e o botão **Meu personagem** permite mudar o visual durante a visita. A preferência é validada e salva apenas no navegador; não altera o personagem do administrador nem envia dados ao servidor.
+
+
+### Vida no escritório
+
+O cenário inclui seis colegas adicionais (Nina, Ravi, Bia, Caio, Yara e Miguel), com visuais e funções próprios. Eles são personagens ambientais, sem alterar a equipe de agentes ou as tarefas salvas no servidor. As rotinas intercalam mesa, quadros, café, plantas e encontros. O painel **Equipe e conversas** reúne o elenco, o histórico das falas presenciadas e oito conversas completas, com seis falas alternadas em cada uma. As falas só aparecem no cenário quando os dois participantes chegam ao encontro. As rotinas não usam IA nem produzem entregas; respeitam execução real, pausa, fechamento do escritório e redução de movimento.
+
+Verificação do diretor de animação: `node --test tests/office-animation.test.cjs`.
+
+
+### Igor e as animações de trabalho
+
+Igor é o anfitrião fixo do cenário, na mesa ao lado do Codex, com identificação permanente. A câmera **Igor & Codex** aproxima a dupla. A mesa reservada abre a apresentação do anfitrião. O visitante continua com seu próprio personagem.
+
+As poses alternam digitação, mouse e leitura com ritmos individuais; monitores e teclados só animam quando o colega está sentado naquela estação. A redução de movimento congela o ciclo. Nenhum desses efeitos inicia execuções reais ou altera tarefas.
+
+Referências de direção visual: [Gather — mesas e espaços de trabalho](https://support.gather.town/articles/2958572750-take-a-tour-of-an-office-on-gather) e [Pixel Agents — animações por atividade](https://github.com/bartoszkwiat/pixel-office). O desenho em Canvas é próprio, sem copiar sprites ou tilesets externos.
+
+Verificação: `node --test tests/workstation-animation.test.cjs`.

@@ -153,7 +153,7 @@
   toolbar.className = 'scene-view-toolbar';
   toolbar.setAttribute('aria-label', 'Visualização do escritório');
   toolbar.innerHTML =
-    '<div><button type="button" data-scene-mode="ambient" aria-pressed="true">Ambiente</button><button type="button" data-scene-mode="work" aria-pressed="false">Trabalho</button></div><div><button type="button" data-scene-camera="overview" title="Enquadrar todo o escritório">Ver tudo</button><button type="button" data-scene-camera="follow" title="Acompanhar seu personagem">Seguir</button><button type="button" data-scene-camera="desk">Minha mesa</button></div>';
+    '<div><button type="button" data-scene-mode="ambient" aria-pressed="true">Ambiente</button><button type="button" data-scene-mode="work" aria-pressed="false">Trabalho</button></div><div><button type="button" data-scene-camera="overview" title="Enquadrar todo o escritório">Ver tudo</button><button type="button" data-scene-camera="follow" title="Acompanhar seu personagem">Seguir</button><button type="button" data-scene-camera="desk">Igor & Codex</button></div>';
   document.querySelector('.office-scene').append(toolbar);
   const tools = document.createElement('details');
   tools.className = 'scene-tools';

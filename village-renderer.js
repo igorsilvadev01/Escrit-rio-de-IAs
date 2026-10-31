@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const ink = '#453c32',
-    paper = '#f2e3bc';
+    paper = '#f4f7ff';
   let groundCache = null,
     groundKey = '';
   const palettes = {
@@ -11,11 +11,11 @@
     cream: ['#998263', '#ddd0ab', '#f3e6c7'],
   };
   const accents = {
-    planning: '#8c9f68',
-    development: '#b39261',
-    testing: '#ba805f',
-    publishing: '#a68a92',
-    leadership: '#a39560',
+    planning: '#728fdb',
+    development: '#3455f5',
+    testing: '#68a7ca',
+    publishing: '#8c82d4',
+    leadership: '#6174be',
   };
   function painter(ctx) {
     return {
@@ -48,29 +48,29 @@
   }
   function paintGround(ctx, W, prefs) {
     const { box, label } = painter(ctx);
-    box(0, 0, W.width, W.height, '#85a96b');
+    box(0, 0, W.width, W.height, '#c8d9f0');
     for (let y = 0; y < W.height; y += 16)
       for (let x = 0; x < W.width; x += 16) {
         const n = (x * 13 + y * 7) % 97;
-        box(x, y, 16, 16, n < 32 ? '#89ae70' : n < 58 ? '#83a768' : '#8daf73');
+        box(x, y, 16, 16, n < 32 ? '#cbdcf2' : n < 58 ? '#c5d7ed' : '#ceddf3');
         if (n < 12) {
-          box(x + 5, y + 9, 2, 3, '#b0c58b');
-          box(x + 8, y + 7, 2, 5, '#a6bd80');
+          box(x + 5, y + 9, 2, 3, '#e3edfc');
+          box(x + 8, y + 7, 2, 5, '#b9cde9');
         }
       }
-    box(28, 198, 575, 38, '#6f8952');
-    box(30, 201, 571, 32, '#bb956a');
-    box(30, 204, 571, 26, '#d7b88a');
-    box(260, 230, 25, 190, '#bb956a');
-    box(264, 230, 17, 190, '#d7b88a');
+    box(28, 198, 575, 38, '#9db5d7');
+    box(30, 201, 571, 32, '#9bb0cf');
+    box(30, 204, 571, 26, '#d8e3f4');
+    box(260, 230, 25, 190, '#9bb0cf');
+    box(264, 230, 17, 190, '#d8e3f4');
     for (const f of W.floor) {
       box(f.x + 3, f.y + 6, f.w, f.h, '#53624244');
-      box(f.x - 2, f.y - 2, f.w + 4, f.h + 5, '#8e704f');
-      box(f.x, f.y, f.w, f.h, '#cfb185');
+      box(f.x - 2, f.y - 2, f.w + 4, f.h + 5, '#6c85af');
+      box(f.x, f.y, f.w, f.h, '#dce5f3');
       for (let y = f.y; y < f.y + f.h; y += 11) {
-        box(f.x, y, f.w, 10, Math.floor(y / 11) % 2 ? '#d1b58d' : '#dcc29a');
+        box(f.x, y, f.w, 10, Math.floor(y / 11) % 2 ? '#e3eaf6' : '#edf2fa');
         for (let x = f.x + 10 + (Math.floor(y / 11) % 2) * 23; x < f.x + f.w; x += 46)
-          box(x, y, 1, 10, '#b99a70');
+          box(x, y, 1, 10, '#c5d3e8');
       }
     }
     const rugs = {
@@ -99,7 +99,7 @@
       box(r.x + 6, r.y + 3, r.w - 12, 15, paper);
       box(r.x + 9, r.y + 5, 11, 11, accents[r.id]);
       label(r.number, r.x + 10, r.y + 13, 6);
-      label(r.id === 'leadership' ? 'VOCÊ + CODEX' : r.name.toUpperCase(), r.x + 25, r.y + 14, 8);
+      label(r.id === 'leadership' ? 'IGOR + CODEX' : r.name.toUpperCase(), r.x + 25, r.y + 14, 8);
     }
     const rest = W.lounge;
     box(rest.x + 3, rest.y + 5, rest.w, rest.h, '#52633d55');
@@ -159,7 +159,7 @@
       box(x - 12, y - 17, 4, 4, '#e2c27b');
     }
   }
-  function desk(ctx, d, role, occupied, prefs, variant = 0) {
+  function desk(ctx, d, role, occupied, prefs, variant = 0, activity = null) {
     const { box, label } = painter(ctx),
       [dark, mid, light] = palettes[prefs.material];
     box(d.x + 3, d.y + 9, d.w + 3, d.h + 5, '#453b3038');
@@ -215,8 +215,24 @@
         box(d.x + 3, d.y + 9, 3, 1, paper);
       }
     } else box(sx + 6, d.y - 5, 4, 1, '#b4ac91');
+    if (occupied && activity && window.FirmaWorkAnimation) {
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      box(sx - 3, d.y - 14, sw + 6, 20, '#6387ff');
+      ctx.restore();
+      const frame = window.FirmaWorkAnimation.screen(
+        ctx,
+        { x: sx + 2, y: d.y - 9, w: sw - 4, h: 9 },
+        role,
+        activity.time,
+        activity.seed,
+        activity.reduced,
+      );
+      box(cx - 8 + (frame.frame % 5) * 3, d.y + 10, 2, 1, '#6387ff');
+      box(sx + sw - 2, d.y + 1, 1, 1, '#a6e7f5');
+    }
     if (d.w > 45) {
-      label(role === 'leadership' ? 'CODEX' : 'SUA MESA', d.x + 8, d.y + d.h - 1, 6, dark);
+      label(role === 'leadership' ? 'CODEX' : 'IGOR', d.x + 8, d.y + d.h - 1, 6, dark);
       if (prefs.plant) plant(ctx, d.x + d.w - 7, d.y + 1, true);
       if (prefs.lamp) {
         box(d.x + 5, d.y + 6, 7, 2, dark);
@@ -235,16 +251,32 @@
     box(p.x - 7, p.y + 12, 2, 3, '#655a43');
     box(p.x + 6, p.y + 12, 2, 3, '#655a43');
   }
-  function objects(W, state, prefs) {
+  function objects(W, state, prefs, live = {}) {
+    const actors = new Map((live.actors || []).map((a) => [a.a.id, a]));
+    const activityFor = (id) => {
+      const a = actors.get(id);
+      if (!a || a.moving || !a.sitting || a.p.mode !== 'desk') return null;
+      return {
+        time: live.time || 0,
+        reduced: !!live.reduced,
+        seed: String(id)
+          .split('')
+          .reduce((n, c) => n + c.charCodeAt(0), 0),
+      };
+    };
     const items = [],
       add = (id, y, draw, layer = 0) => items.push({ id, y, draw, layer });
     W.scenery.trees.forEach((p, i) => add('tree:' + i, p.y + 15, (c) => tree(c, p.x, p.y, i)));
     for (const r of W.rooms) {
-      const members = state.agents.filter((a) => a.department === r.id);
+      const members = (window.FirmaLife?.roster(state) || state.agents).filter(
+        (a) => a.department === r.id,
+      );
       W.workDesks
         .filter((d) => d.room === r.id)
         .forEach((d, i) =>
-          add('desk:' + r.id + i, d.y + d.h + 8, (c) => desk(c, d, r.id, !!members[i], prefs, i)),
+          add('desk:' + r.id + i, d.y + d.h + 8, (c) =>
+            desk(c, d, r.id, !!members[i], prefs, i, activityFor(members[i]?.id)),
+          ),
         );
     }
     for (const p of W.chairs)
@@ -271,15 +303,15 @@
             box(b.x + 9, b.y + 5 + i * 6, 6, 1, '#b1966f');
           }
         } else {
-          box(b.x + 4, b.y + 5, 11, 7, '#a68a92');
+          box(b.x + 4, b.y + 5, 11, 7, '#8c82d4');
           box(b.x + 4, b.y + 14, 7, 2, '#9aa073');
         }
       });
     add('codex-desk', W.furniture.leaderDesk.y + W.furniture.leaderDesk.h + 8, (c) =>
-      desk(c, W.furniture.leaderDesk, 'leadership', true, prefs),
+      desk(c, W.furniture.leaderDesk, 'leadership', true, prefs, 0, activityFor('codex-leader')),
     );
     add('admin-desk', W.furniture.adminDesk.y + W.furniture.adminDesk.h + 8, (c) =>
-      desk(c, W.furniture.adminDesk, 'development', true, prefs),
+      desk(c, W.furniture.adminDesk, 'development', true, prefs, 1, activityFor('igor-host')),
     );
     add('codex-chair', W.leaderHome.y - 3, (c) => chair(c, W.leaderHome, '#b69d6b'));
     add('admin-chair', W.playerSeats.admin.y - 3, (c) => chair(c, W.playerSeats.admin, '#8b9c70'));
@@ -293,6 +325,10 @@
         box(p.x - 11, p.y + 8, 3, 5, '#796346');
         box(p.x + 8, p.y + 8, 3, 5, '#796346');
       });
+    for (let i = 0; i < 3; i++)
+      add('life-plant-' + i, rest.y + 8 + i * 20, (c) =>
+        plant(c, rest.x - 8, rest.y + 8 + i * 20, true),
+      );
     const coffee = rest.coffee;
     add('coffee', coffee.y + coffee.h + 6, (c) => {
       const { box } = painter(c);

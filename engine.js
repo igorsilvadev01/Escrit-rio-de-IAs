@@ -544,7 +544,7 @@
         'Somos uma pequena empresa construindo produtos úteis. Priorizamos clareza, acessibilidade e entregas verificáveis.',
         12000,
       ),
-      company: string(raw.company, 'Firma HQ', 40),
+      company: string(raw.company, 'Escritório do Igor', 40),
       onboarded: !!raw.onboarded,
     };
     state.office = migrateOffice(raw.office, agents);
